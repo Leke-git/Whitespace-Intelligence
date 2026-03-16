@@ -3,14 +3,14 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useMemo } from 'react';
-import dynamic from 'next/dynamic';
+import NextDynamic from 'next/dynamic';
 import Navbar from '@/components/Navbar';
 import { supabase } from '@/lib/supabase';
 import { Map as MapIcon, Info, Layers, Filter, AlertTriangle, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Dynamically import LeafletMap to avoid SSR issues
-const LeafletMap = dynamic(() => import('@/components/LeafletMap'), { 
+const LeafletMap = NextDynamic(() => import('@/components/LeafletMap'), { 
   ssr: false,
   loading: () => (
     <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
@@ -27,7 +27,6 @@ export default function MapPage() {
   const [lgas, setLgas] = useState<any[]>([]);
   const [interventions, setInterventions] = useState<any[]>([]);
   const [selectedLga, setSelectedLga] = useState<any>(null);
-  const [stats, setStats] = useState<any>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -55,23 +54,22 @@ export default function MapPage() {
     fetchData();
   }, []);
 
-  // Calculate stats for selected LGA
-  useEffect(() => {
-    if (selectedLga) {
-      const lgaInterventions = interventions.filter(i => i.lga_id === selectedLga.id);
-      const uniqueOrgs = new Set(lgaInterventions.map(i => i.org_id)).size;
-      
-      // Simple gap analysis: if need is high but interventions are low
-      const sectors = ['Health', 'Education', 'WASH', 'Nutrition', 'Protection'];
-      const coveredSectors = new Set(lgaInterventions.map(i => i.sector));
-      const gaps = sectors.filter(s => !coveredSectors.has(s));
+  // Calculate stats for selected LGA using useMemo
+  const stats = useMemo(() => {
+    if (!selectedLga) return null;
 
-      setStats({
-        orgCount: uniqueOrgs,
-        intCount: lgaInterventions.length,
-        primaryGap: gaps[0] || 'None'
-      });
-    }
+    const lgaInterventions = interventions.filter(i => i.lga_id === selectedLga.id);
+    const uniqueOrgs = new Set(lgaInterventions.map(i => i.org_id)).size;
+    
+    const sectors = ['Health', 'Education', 'WASH', 'Nutrition', 'Protection'];
+    const coveredSectors = new Set(lgaInterventions.map(i => i.sector));
+    const gaps = sectors.filter(s => !coveredSectors.has(s));
+
+    return {
+      orgCount: uniqueOrgs,
+      intCount: lgaInterventions.length,
+      primaryGap: gaps[0] || 'None'
+    };
   }, [selectedLga, interventions]);
 
   return (
