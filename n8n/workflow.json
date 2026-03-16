@@ -1,0 +1,25 @@
+{
+  "name": "Whitespace Coordination Intelligence",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whitespace-coordination",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        100,
+        300
+      ],
+      "webhookId": "whitespace-webhook"
+    }
+  ],
+  "connections": {},
+  "active": false,
+  "settings": {},
+  "id": "placeholder-id"
+}
