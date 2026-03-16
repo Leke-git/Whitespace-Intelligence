@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS lga_data (
     name TEXT NOT NULL,
     state TEXT NOT NULL,
     population INTEGER,
+    latitude NUMERIC(9,6),
+    longitude NUMERIC(9,6),
     need_index NUMERIC(3,2) DEFAULT 0.00 CHECK (need_index >= 0 AND need_index <= 1),
     primary_needs JSONB DEFAULT '[]',
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -97,6 +99,15 @@ CREATE POLICY "NGOs manage own interventions" ON interventions FOR ALL USING (
 -- Admin has full access (Service Role)
 -- Supabase service_role bypasses RLS by default.
 
--- SEED DATA (Proxy Need Index)
--- This is where the 774 LGAs would be inserted. 
--- For the build, we will provide a script to seed this.
+-- SEED DATA (Sample LGAs with Coordinates)
+INSERT INTO lga_data (name, state, population, latitude, longitude, need_index, primary_needs) VALUES
+('Ikeja', 'Lagos', 313196, 6.5965, 3.3421, 0.15, '["Infrastructure", "Traffic Management"]'),
+('Alimosho', 'Lagos', 1288714, 6.6010, 3.2500, 0.42, '["WASH", "Primary Healthcare"]'),
+('Kano Municipal', 'Kano', 365525, 11.9964, 8.5167, 0.35, '["Education", "Nutrition"]'),
+('Maiduguri', 'Borno', 543016, 11.8333, 13.1500, 0.88, '["Protection", "Food Security", "Shelter"]'),
+('Bama', 'Borno', 269986, 11.5221, 13.6856, 0.95, '["Nutrition", "WASH", "Protection"]'),
+('Port Harcourt', 'Rivers', 541115, 4.8156, 7.0498, 0.22, '["Livelihoods", "Environmental Protection"]'),
+('Abuja Municipal', 'FCT', 776298, 9.0578, 7.4951, 0.18, '["Housing", "Education"]'),
+('Jos North', 'Plateau', 429300, 9.9167, 8.9000, 0.55, '["Peacebuilding", "Healthcare"]'),
+('Onitsha North', 'Anambra', 125918, 6.1500, 6.7833, 0.30, '["Trade Infrastructure", "WASH"]'),
+('Kaduna South', 'Kaduna', 402390, 10.4833, 7.4167, 0.48, '["Education", "Security"]');
