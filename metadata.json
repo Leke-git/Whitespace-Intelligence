@@ -1,0 +1,8 @@
+{
+  "name": "Whitespace",
+  "description": "Coordination Intelligence Platform for Nigerian Civil Society. Features a verified NGO registry, AI-powered gap analysis, real-time coordination maps, and institutional collaboration tools.",
+  "requestFramePermissions": [
+    "geolocation",
+    "camera"
+  ]
+}
