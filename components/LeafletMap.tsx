@@ -2,14 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import * as L from 'leaflet';
 
 // Fix for default marker icons in Leaflet with Next.js
-const fixLeafletIcons = () => {
+const fixLeafletIcons = (leafletInstance: typeof L) => {
   // @ts-ignore
-  delete L.Icon.Default.prototype._getIconUrl;
-  L.Icon.Default.mergeOptions({
+  delete leafletInstance.Icon.Default.prototype._getIconUrl;
+  leafletInstance.Icon.Default.mergeOptions({
     iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
     iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
@@ -31,7 +30,7 @@ function MapUpdater({ center }: { center: [number, number] }) {
 
 export default function LeafletMap({ lgas, onSelectLga }: LeafletMapProps) {
   useEffect(() => {
-    fixLeafletIcons();
+    fixLeafletIcons(L);
   }, []);
 
   const getNeedColor = (index: number) => {
