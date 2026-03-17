@@ -70,7 +70,7 @@ export default function IntelligenceMap({ lgas, onLgaSelect, selectedLgaId }: In
           .data(features)
           .enter()
           .append('path')
-          .attr('d', path)
+          .attr('d', (d: any) => path(d))
           .attr('fill', (d: any) => colorScale(d.properties.gap_score))
           .attr('stroke', '#1e293b')
           .attr('stroke-width', 0.5)
