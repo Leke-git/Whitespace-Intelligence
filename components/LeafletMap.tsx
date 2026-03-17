@@ -18,6 +18,7 @@ const fixLeafletIcons = (leafletInstance: typeof L) => {
 interface LeafletMapProps {
   lgas: any[];
   onSelectLga: (lga: any) => void;
+  onHoverLga: (lga: any | null) => void;
 }
 
 function MapUpdater({ center }: { center: [number, number] }) {
@@ -28,7 +29,7 @@ function MapUpdater({ center }: { center: [number, number] }) {
   return null;
 }
 
-export default function LeafletMap({ lgas, onSelectLga }: LeafletMapProps) {
+export default function LeafletMap({ lgas, onSelectLga, onHoverLga }: LeafletMapProps) {
   useEffect(() => {
     fixLeafletIcons(L);
   }, []);
@@ -68,19 +69,11 @@ export default function LeafletMap({ lgas, onSelectLga }: LeafletMapProps) {
               weight: 2
             }}
             eventHandlers={{
-              click: () => onSelectLga(lga)
+              click: () => onSelectLga(lga),
+              mouseover: () => onHoverLga(lga),
+              mouseout: () => onHoverLga(null)
             }}
-          >
-            <Popup>
-              <div className="p-1">
-                <h3 className="font-bold text-slate-900">{lga.name}</h3>
-                <p className="text-xs text-slate-500">{lga.state} State</p>
-                <div className="mt-2 text-xs font-bold" style={{ color: getNeedColor(lga.gap_score) }}>
-                  Gap Score: {lga.gap_score}
-                </div>
-              </div>
-            </Popup>
-          </CircleMarker>
+          />
         );
       })}
     </MapContainer>
