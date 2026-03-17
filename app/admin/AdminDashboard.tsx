@@ -21,26 +21,26 @@ import { motion } from 'motion/react';
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [pendingOrgs, setPendingOrgs] = useState<any[]>([]);
-  const [stats, setStats] = useState({ orgs: 0, interventions: 0, verified: 0 });
+  const [stats, setStats] = useState({ orgs: 0, programmes: 0, verified: 0 });
   const [importStatus, setImportStatus] = useState<string | null>(null);
 
   const fetchStats = useCallback(async () => {
-    const { count: orgCount } = await supabase.from('organizations').select('*', { count: 'exact', head: true });
-    const { count: intCount } = await supabase.from('interventions').select('*', { count: 'exact', head: true });
-    const { count: verCount } = await supabase.from('organizations').select('*', { count: 'exact', head: true }).eq('verified_status', 'verified');
+    const { count: orgCount } = await supabase.from('organisations').select('*', { count: 'exact', head: true });
+    const { count: progCount } = await supabase.from('programmes').select('*', { count: 'exact', head: true });
+    const { count: verCount } = await supabase.from('organisations').select('*', { count: 'exact', head: true }).eq('trust_tier', 'verified');
     
     setStats({
       orgs: orgCount || 0,
-      interventions: intCount || 0,
+      programmes: progCount || 0,
       verified: verCount || 0
     });
   }, []);
 
   const fetchPendingOrgs = useCallback(async () => {
     const { data } = await supabase
-      .from('organizations')
+      .from('organisations')
       .select('*')
-      .eq('verified_status', 'pending');
+      .eq('trust_tier', 'registered');
     setPendingOrgs(data || []);
   }, []);
 
@@ -53,9 +53,14 @@ export default function AdminDashboard() {
   }, [fetchStats, fetchPendingOrgs]);
 
   async function handleVerify(id: string, status: 'verified' | 'rejected') {
+    // In the new schema, we map 'verified' to trust_tier='verified'
+    // 'rejected' isn't a trust_tier, but we can handle it via a verification_events table or just status
     const { error } = await supabase
-      .from('organizations')
-      .update({ verified_status: status })
+      .from('organisations')
+      .update({ 
+        trust_tier: status === 'verified' ? 'verified' : 'registered',
+        status: status === 'rejected' ? 'suspended' : 'active'
+      })
       .eq('id', id);
 
     if (!error) {
@@ -68,7 +73,7 @@ export default function AdminDashboard() {
     setImportStatus('Processing CSV...');
     // Simulate CSV processing
     setTimeout(() => {
-      setImportStatus('Successfully updated 774 LGAs with real Need Index data.');
+      setImportStatus('Successfully updated 774 LGAs with real Gap Score data.');
     }, 2000);
   };
 
@@ -131,8 +136,8 @@ export default function AdminDashboard() {
                 <div className="text-4xl font-bold text-emerald-600">{stats.verified}</div>
               </div>
               <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
-                <div className="text-slate-500 text-sm font-bold uppercase tracking-wider mb-2">Interventions</div>
-                <div className="text-4xl font-bold text-blue-600">{stats.interventions}</div>
+                <div className="text-slate-500 text-sm font-bold uppercase tracking-wider mb-2">Programmes</div>
+                <div className="text-4xl font-bold text-blue-600">{stats.programmes}</div>
               </div>
             </div>
 
@@ -162,7 +167,7 @@ export default function AdminDashboard() {
               <table className="w-full text-left">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
-                    <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Organization</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Organisation</th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase">CAC Number</th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Email</th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase text-right">Actions</th>
@@ -171,9 +176,9 @@ export default function AdminDashboard() {
                 <tbody className="divide-y divide-slate-100">
                   {pendingOrgs.length > 0 ? pendingOrgs.map((org) => (
                     <tr key={org.id} className="hover:bg-slate-50">
-                      <td className="px-6 py-4 font-bold text-slate-900">{org.name}</td>
+                      <td className="px-6 py-4 font-bold text-slate-900">{org.legal_name}</td>
                       <td className="px-6 py-4 text-slate-600 font-mono">{org.cac_number}</td>
-                      <td className="px-6 py-4 text-slate-600">{org.contact_email}</td>
+                      <td className="px-6 py-4 text-slate-600">{org.email}</td>
                       <td className="px-6 py-4 text-right space-x-2">
                         <button 
                           onClick={() => handleVerify(org.id, 'verified')}
@@ -204,7 +209,7 @@ export default function AdminDashboard() {
 
         {activeTab === 'data' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
-            <h1 className="text-3xl font-bold text-slate-900">Need Index Data Import</h1>
+            <h1 className="text-3xl font-bold text-slate-900">Gap Score Data Import</h1>
             
             <div className="max-w-2xl bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
               <div className="flex items-center gap-4 mb-8">
@@ -213,7 +218,7 @@ export default function AdminDashboard() {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-slate-900">Replace Proxy Data</h3>
-                  <p className="text-slate-500">Upload a CSV to update the Need Index for all 774 LGAs.</p>
+                  <p className="text-slate-500">Upload a CSV to update the Gap Score for all 774 LGAs.</p>
                 </div>
               </div>
 
@@ -227,7 +232,7 @@ export default function AdminDashboard() {
                   />
                   <Upload className="w-10 h-10 text-slate-300 mx-auto mb-4" />
                   <p className="text-slate-600 font-medium">Click to upload or drag and drop</p>
-                  <p className="text-xs text-slate-400 mt-2">CSV format: LGA_ID, NEED_INDEX (0.0 - 1.0)</p>
+                  <p className="text-xs text-slate-400 mt-2">CSV format: LGA_ID, GAP_SCORE (0.0 - 1.0)</p>
                 </div>
 
                 {importStatus && (
@@ -240,7 +245,7 @@ export default function AdminDashboard() {
                 <div className="p-4 bg-blue-50 text-blue-700 rounded-xl flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 mt-0.5" />
                   <div className="text-sm">
-                    <strong>Note:</strong> Replacing the Need Index will immediately update the Coordination Map and Gap Intelligence alerts across the platform.
+                    <strong>Note:</strong> Replacing the Gap Score will immediately update the Coordination Map and Gap Intelligence alerts across the platform.
                   </div>
                 </div>
               </div>

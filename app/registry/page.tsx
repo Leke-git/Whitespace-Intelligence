@@ -9,32 +9,32 @@ import { Search, Filter, ShieldCheck, ExternalLink, MapPin, Users } from 'lucide
 import { motion } from 'motion/react';
 import Image from 'next/image';
 
-interface Organization {
+interface Organisation {
   id: string;
-  name: string;
+  legal_name: string;
   cac_number: string;
-  verified_status: string;
+  trust_tier: string;
   description: string;
-  contact_email: string;
-  website_url: string;
+  email: string;
+  website: string;
   logo_url: string;
 }
 
 export default function RegistryPage() {
-  const [orgs, setOrgs] = useState<Organization[]>([]);
+  const [orgs, setOrgs] = useState<Organisation[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
   const fetchOrgs = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
-      .from('organizations')
+      .from('organisations')
       .select('*')
-      .eq('verified_status', 'verified')
-      .order('name');
+      .eq('trust_tier', 'verified')
+      .order('legal_name');
 
     if (error) {
-      console.error('Error fetching organizations:', error);
+      console.error('Error fetching organisations:', error);
     } else {
       setOrgs(data || []);
     }
@@ -49,7 +49,7 @@ export default function RegistryPage() {
   }, [fetchOrgs]);
 
   const filteredOrgs = orgs.filter(org => 
-    org.name.toLowerCase().includes(search.toLowerCase()) ||
+    org.legal_name.toLowerCase().includes(search.toLowerCase()) ||
     org.description?.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -61,7 +61,7 @@ export default function RegistryPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-4xl font-bold text-slate-900 mb-4">Verified NGO Registry</h1>
           <p className="text-lg text-slate-600 max-w-2xl">
-            A directory of civil society organizations verified through institutional vetting and CAC documentation.
+            A directory of civil society organisations verified through institutional vetting and CAC documentation.
           </p>
         </div>
       </header>
@@ -104,18 +104,18 @@ export default function RegistryPage() {
                 <div className="flex items-start justify-between mb-6">
                   <div className="w-16 h-16 bg-slate-100 rounded-xl flex items-center justify-center overflow-hidden relative">
                     {org.logo_url ? (
-                      <Image src={org.logo_url} alt={org.name} fill className="object-cover" referrerPolicy="no-referrer" />
+                      <Image src={org.logo_url} alt={org.legal_name} fill className="object-cover" referrerPolicy="no-referrer" />
                     ) : (
                       <Users className="text-slate-400 w-8 h-8" />
                     )}
                   </div>
                   <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold uppercase tracking-wider">
                     <ShieldCheck className="w-3 h-3" />
-                    Verified
+                    {org.trust_tier}
                   </div>
                 </div>
                 
-                <h3 className="text-xl font-bold text-slate-900 mb-2">{org.name}</h3>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">{org.legal_name}</h3>
                 <p className="text-slate-500 text-sm mb-4 font-mono uppercase tracking-tight">CAC: {org.cac_number}</p>
                 <p className="text-slate-600 text-sm line-clamp-3 mb-6 flex-grow">
                   {org.description || "No description provided."}
@@ -126,9 +126,9 @@ export default function RegistryPage() {
                     <MapPin className="w-4 h-4" />
                     Nigeria
                   </div>
-                  {org.website_url && (
+                  {org.website && (
                     <a
-                      href={org.website_url}
+                      href={org.website}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-emerald-600 hover:text-emerald-700 font-medium text-sm flex items-center gap-1"
@@ -146,7 +146,7 @@ export default function RegistryPage() {
             <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <Search className="text-slate-400 w-10 h-10" />
             </div>
-            <h3 className="text-2xl font-bold text-slate-900 mb-2">No organizations found</h3>
+            <h3 className="text-2xl font-bold text-slate-900 mb-2">No organisations found</h3>
             <p className="text-slate-600">Try adjusting your search or filters.</p>
           </div>
         )}

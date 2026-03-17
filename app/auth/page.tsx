@@ -46,13 +46,15 @@ function AuthForm() {
         if (signUpError) throw signUpError;
 
         if (authData.user) {
-          // 2. Create the organization profile
-          const { error: orgError } = await supabase.from('organizations').insert({
+          // 2. Create the organisation profile
+          const slug = orgName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+          const { error: orgError } = await supabase.from('organisations').insert({
             id: authData.user.id,
-            name: orgName,
+            legal_name: orgName,
+            slug: `${slug}-${Math.random().toString(36).substring(2, 7)}`,
             cac_number: cacNumber,
-            contact_email: email,
-            verified_status: 'pending'
+            email: email,
+            trust_tier: 'registered'
           });
           if (orgError) throw orgError;
         }
@@ -103,7 +105,7 @@ function AuthForm() {
                 className="space-y-6 overflow-hidden"
               >
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Organization Name</label>
+                  <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Organisation Name</label>
                   <div className="relative">
                     <Building className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
                     <input
@@ -143,7 +145,7 @@ function AuthForm() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@organization.org"
+                placeholder="name@organisation.org"
                 className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
               />
             </div>
@@ -208,13 +210,13 @@ export default function AuthPage() {
               <span className="text-emerald-600">Coordination Network.</span>
             </h1>
             <p className="text-xl text-slate-600 leading-relaxed max-w-lg">
-              Register your organization to access the coordination map, log interventions, and receive gap intelligence alerts.
+              Register your organisation to access the coordination map, log programmes, and receive gap intelligence alerts.
             </p>
             
             <div className="space-y-4">
               {[
                 "Institutional verification for all NGOs",
-                "Real-time intervention mapping",
+                "Real-time programme mapping",
                 "AI-powered gap analysis alerts",
                 "Direct coordination with 1,200+ partners"
               ].map((item, i) => (

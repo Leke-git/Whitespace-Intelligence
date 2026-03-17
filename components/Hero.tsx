@@ -35,7 +35,7 @@ export default function Hero() {
               <span className="text-emerald-600">Map the Gaps.</span>
             </h1>
             <p className="text-xl text-slate-600 mb-10 leading-relaxed">
-              Whitespace is Nigeria&apos;s coordination platform for civil society. We use intelligence to ensure every intervention reaches the LGAs that need them most.
+              Whitespace is Nigeria&apos;s coordination platform for civil society. We use intelligence to ensure every programme reaches the LGAs that need them most.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link

@@ -16,7 +16,7 @@ export default function Home() {
     },
     {
       title: "Coordination Maps",
-      description: "Real-time visualization of interventions across all 774 LGAs to identify overlaps.",
+      description: "Real-time visualization of programmes across all 774 LGAs to identify overlaps.",
       icon: MapIcon,
       color: "text-blue-600",
       bg: "bg-blue-50"
@@ -68,7 +68,7 @@ export default function Home() {
             <div className="max-w-xl">
               <h2 className="text-4xl font-bold mb-6">Ready to coordinate?</h2>
               <p className="text-emerald-50 text-xl opacity-90">
-                Join over 1,200 organizations mapping their impact and identifying new opportunities for intervention.
+                Join over 1,200 organisations mapping their impact and identifying new opportunities for programmes.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">

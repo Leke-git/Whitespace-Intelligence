@@ -19,7 +19,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "Whitespace | Coordination Intelligence for Civil Society",
-  description: "National coordination intelligence platform for Nigerian civil society. Mapping interventions, identifying gaps, and fostering institutional collaboration.",
+  description: "National coordination intelligence platform for Nigerian civil society. Mapping programmes, identifying gaps, and fostering institutional collaboration.",
 };
 
 export default function RootLayout({

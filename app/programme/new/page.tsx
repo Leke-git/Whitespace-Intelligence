@@ -11,20 +11,30 @@ import { motion, AnimatePresence } from 'motion/react';
 
 const SECTORS = ['Health', 'Education', 'Nutrition', 'WASH', 'Protection', 'Food Security', 'Livelihoods', 'Shelter', 'Other'];
 
-export default function NewInterventionPage() {
+export default function NewProgrammePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [sectors, setSectors] = useState<any[]>([]);
 
   // Form states
-  const [sector, setSector] = useState('');
+  const [title, setTitle] = useState('');
+  const [sectorId, setSectorId] = useState('');
   const [lgaId, setLgaId] = useState('');
-  const [budget, setBudget] = useState('');
+  const [budgetRange, setBudgetRange] = useState('');
   const [targetReach, setTargetReach] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [description, setDescription] = useState('');
+
+  useEffect(() => {
+    const fetchSectors = async () => {
+      const { data } = await supabase.from('sectors').select('*').order('name');
+      setSectors(data || []);
+    };
+    fetchSectors();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,26 +43,36 @@ export default function NewInterventionPage() {
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('You must be logged in to log an intervention.');
+      if (!user) throw new Error('You must be logged in to log a programme.');
 
-      const { error: insertError } = await supabase.from('interventions').insert({
-        org_id: user.id,
-        lga_id: parseInt(lgaId),
-        sector,
-        budget: parseFloat(budget),
+      // 1. Insert into programmes
+      const { data: programme, error: insertError } = await supabase.from('programmes').insert({
+        organisation_id: user.id,
+        title,
+        sector_id: sectorId,
+        budget_range: budgetRange,
         target_reach: parseInt(targetReach),
         start_date: startDate,
         end_date: endDate,
         description,
-        status: 'active'
-      });
+        status: 'planned'
+      }).select().single();
 
       if (insertError) throw insertError;
+
+      // 2. Insert into programme_lgas
+      if (programme && lgaId) {
+        const { error: lgaError } = await supabase.from('programme_lgas').insert({
+          programme_id: programme.id,
+          lga_id: parseInt(lgaId)
+        });
+        if (lgaError) throw lgaError;
+      }
 
       setSuccess(true);
       setTimeout(() => router.push('/map'), 2000);
     } catch (err: any) {
-      setError(err.message || 'An error occurred while logging the intervention.');
+      setError(err.message || 'An error occurred while logging the programme.');
     } finally {
       setLoading(false);
     }
@@ -84,8 +104,8 @@ export default function NewInterventionPage() {
               <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-emerald-500/20">
                 <Plus className="text-white w-6 h-6" />
               </div>
-              <h1 className="text-3xl font-bold mb-2">Log New Intervention</h1>
-              <p className="text-slate-400">Map your organization&apos;s impact and help eliminate service duplication.</p>
+              <h1 className="text-3xl font-bold mb-2">Log New Programme</h1>
+              <p className="text-slate-400">Map your organisation&apos;s impact and help eliminate service duplication.</p>
             </div>
           </div>
 
@@ -101,7 +121,7 @@ export default function NewInterventionPage() {
                   <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
                     <CheckCircle className="text-emerald-600 w-10 h-10" />
                   </div>
-                  <h2 className="text-3xl font-bold text-slate-900">Intervention Logged!</h2>
+                  <h2 className="text-3xl font-bold text-slate-900">Programme Logged!</h2>
                   <p className="text-slate-600 max-w-sm mx-auto">
                     Your activity has been mapped and will be processed by the Gap Intelligence engine.
                   </p>
@@ -109,20 +129,36 @@ export default function NewInterventionPage() {
                 </motion.div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-8">
+                  {/* Title */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Programme Title</label>
+                    <div className="relative">
+                      <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                      <input
+                        type="text"
+                        required
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="e.g. Maternal Health Support Phase 1"
+                        className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {/* Sector */}
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Sector</label>
                       <div className="relative">
-                        <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                        <Plus className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
                         <select
                           required
-                          value={sector}
-                          onChange={(e) => setSector(e.target.value)}
+                          value={sectorId}
+                          onChange={(e) => setSectorId(e.target.value)}
                           className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all appearance-none bg-white"
                         >
                           <option value="">Select Sector</option>
-                          {SECTORS.map(s => <option key={s} value={s}>{s}</option>)}
+                          {sectors.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </select>
                       </div>
                     </div>
@@ -147,17 +183,21 @@ export default function NewInterventionPage() {
 
                     {/* Budget */}
                     <div className="space-y-2">
-                      <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Budget (NGN)</label>
+                      <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Budget Range</label>
                       <div className="relative">
                         <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                        <input
-                          type="number"
+                        <select
                           required
-                          value={budget}
-                          onChange={(e) => setBudget(e.target.value)}
-                          placeholder="0.00"
-                          className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
-                        />
+                          value={budgetRange}
+                          onChange={(e) => setBudgetRange(e.target.value)}
+                          className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all appearance-none bg-white"
+                        >
+                          <option value="">Select Range</option>
+                          <option value="< 1M NGN">&lt; 1M NGN</option>
+                          <option value="1M - 10M NGN">1M - 10M NGN</option>
+                          <option value="10M - 50M NGN">10M - 50M NGN</option>
+                          <option value="> 50M NGN">&gt; 50M NGN</option>
+                        </select>
                       </div>
                     </div>
 
@@ -210,7 +250,7 @@ export default function NewInterventionPage() {
 
                   {/* Description */}
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Intervention Description</label>
+                    <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Programme Description</label>
                     <textarea
                       required
                       rows={4}
@@ -241,7 +281,7 @@ export default function NewInterventionPage() {
                       disabled={loading}
                       className="bg-emerald-600 text-white px-10 py-4 rounded-xl font-bold text-lg hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 disabled:opacity-50"
                     >
-                      {loading ? 'Logging...' : 'Log Intervention'}
+                      {loading ? 'Logging...' : 'Log Programme'}
                       {!loading && <ArrowRight className="w-5 h-5" />}
                     </button>
                   </div>

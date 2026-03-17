@@ -25,7 +25,7 @@ const LeafletMap = NextDynamic(() => import('@/components/LeafletMap'), {
 export default function MapPage() {
   const [loading, setLoading] = useState(true);
   const [lgas, setLgas] = useState<any[]>([]);
-  const [interventions, setInterventions] = useState<any[]>([]);
+  const [programmes, setProgrammes] = useState<any[]>([]);
   const [selectedLga, setSelectedLga] = useState<any>(null);
 
   useEffect(() => {
@@ -40,13 +40,13 @@ export default function MapPage() {
       if (lgaError) console.error('Error fetching LGAs:', lgaError);
       else setLgas(lgaData || []);
 
-      // Fetch Interventions
-      const { data: intData, error: intError } = await supabase
-        .from('interventions')
-        .select('*, organizations(name)');
+      // Fetch Programmes
+      const { data: progData, error: progError } = await supabase
+        .from('programmes')
+        .select('*, organisations(legal_name)');
       
-      if (intError) console.error('Error fetching interventions:', intError);
-      else setInterventions(intData || []);
+      if (progError) console.error('Error fetching programmes:', progError);
+      else setProgrammes(progData || []);
 
       setLoading(false);
     };
@@ -58,19 +58,19 @@ export default function MapPage() {
   const stats = useMemo(() => {
     if (!selectedLga) return null;
 
-    const lgaInterventions = interventions.filter(i => i.lga_id === selectedLga.id);
-    const uniqueOrgs = new Set(lgaInterventions.map(i => i.org_id)).size;
+    const lgaProgrammes = programmes.filter(i => i.lga_id === selectedLga.id);
+    const uniqueOrgs = new Set(lgaProgrammes.map(i => i.organisation_id)).size;
     
     const sectors = ['Health', 'Education', 'WASH', 'Nutrition', 'Protection'];
-    const coveredSectors = new Set(lgaInterventions.map(i => i.sector));
+    const coveredSectors = new Set(lgaProgrammes.map(i => i.sector));
     const gaps = sectors.filter(s => !coveredSectors.has(s));
 
     return {
       orgCount: uniqueOrgs,
-      intCount: lgaInterventions.length,
+      progCount: lgaProgrammes.length,
       primaryGap: gaps[0] || 'None'
     };
-  }, [selectedLga, interventions]);
+  }, [selectedLga, programmes]);
 
   return (
     <main className="h-screen flex flex-col bg-slate-50">
@@ -84,7 +84,7 @@ export default function MapPage() {
               <MapIcon className="text-emerald-600 w-5 h-5" />
               Coordination Map
             </h1>
-            <p className="text-sm text-slate-500 mt-1">National Intervention Density</p>
+            <p className="text-sm text-slate-500 mt-1">National Programme Density</p>
           </div>
 
           <div className="flex-grow overflow-y-auto p-6 space-y-8">
@@ -127,7 +127,7 @@ export default function MapPage() {
                 Intelligence Alert
               </div>
               <p className="text-xs text-amber-700 leading-relaxed">
-                {lgas.filter(l => l.need_index > 0.8).length} LGAs show critical gaps in interventions despite high need scores.
+                {lgas.filter(l => l.gap_score > 0.8).length} LGAs show critical gaps in programmes despite high need scores.
               </p>
               <button className="mt-3 text-xs font-bold text-amber-900 underline">View Gaps</button>
             </div>
@@ -171,9 +171,9 @@ export default function MapPage() {
                       <p className="text-slate-500">{selectedLga.state} State | Pop: {selectedLga.population?.toLocaleString()}</p>
                     </div>
                     <div className={`px-4 py-2 rounded-xl font-bold ${
-                      selectedLga.need_index > 0.7 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'
+                      selectedLga.gap_score > 0.7 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'
                     }`}>
-                      Need Index: {selectedLga.need_index}
+                      Gap Score: {selectedLga.gap_score}
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-4">
@@ -182,8 +182,8 @@ export default function MapPage() {
                       <div className="text-xl font-bold text-slate-900">{stats.orgCount}</div>
                     </div>
                     <div className="p-3 bg-slate-50 rounded-lg">
-                      <div className="text-xs font-bold text-slate-400 uppercase mb-1">Interventions</div>
-                      <div className="text-xl font-bold text-slate-900">{stats.intCount}</div>
+                      <div className="text-xs font-bold text-slate-400 uppercase mb-1">Programmes</div>
+                      <div className="text-xl font-bold text-slate-900">{stats.progCount}</div>
                     </div>
                     <div className="p-3 bg-slate-50 rounded-lg">
                       <div className="text-xs font-bold text-slate-400 uppercase mb-1">Primary Gap</div>

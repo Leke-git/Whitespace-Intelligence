@@ -60,9 +60,9 @@ export default function LeafletMap({ lgas, onSelectLga }: LeafletMapProps) {
           <CircleMarker
             key={lga.id}
             center={[Number(lga.latitude), Number(lga.longitude)]}
-            radius={10 + (lga.need_index * 15)}
+            radius={10 + (lga.gap_score * 15)}
             pathOptions={{
-              fillColor: getNeedColor(lga.need_index),
+              fillColor: getNeedColor(lga.gap_score),
               fillOpacity: 0.7,
               color: '#fff',
               weight: 2
@@ -75,8 +75,8 @@ export default function LeafletMap({ lgas, onSelectLga }: LeafletMapProps) {
               <div className="p-1">
                 <h3 className="font-bold text-slate-900">{lga.name}</h3>
                 <p className="text-xs text-slate-500">{lga.state} State</p>
-                <div className="mt-2 text-xs font-bold" style={{ color: getNeedColor(lga.need_index) }}>
-                  Need Index: {lga.need_index}
+                <div className="mt-2 text-xs font-bold" style={{ color: getNeedColor(lga.gap_score) }}>
+                  Gap Score: {lga.gap_score}
                 </div>
               </div>
             </Popup>

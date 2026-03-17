@@ -12,7 +12,7 @@ export default function Navbar() {
     { name: 'Coordination Map', href: '/map', icon: Map },
     { name: 'NGO Registry', href: '/registry', icon: Users },
     { name: 'Intelligence', href: '/intelligence', icon: LayoutDashboard },
-    { name: 'Log Activity', href: '/intervention/new', icon: Shield },
+    { name: 'Log Activity', href: '/programme/new', icon: Shield },
   ];
 
   return (
