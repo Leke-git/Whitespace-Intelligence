@@ -96,7 +96,7 @@ export default function MapPage() {
     (async () => {
       setLoading(true);
       const [{ data: lgaData }, { data: progData }] = await Promise.all([
-        supabase.from('lga_data').select('*'),
+        supabase.from('lga_gap_scores').select('*'),
         supabase.from('programmes').select('*, organisations(legal_name)'),
       ]);
       setLgas(lgaData ?? []);
