@@ -34,7 +34,7 @@ export default function IntelligencePage() {
         id,
         gap_score,
         computed_at,
-        lga_data (name),
+        lga_gap_scores (name),
         sectors (name)
       `)
       .order('gap_score', { ascending: false })
@@ -82,12 +82,12 @@ export default function IntelligencePage() {
     } else {
       const mappedData: GapAnalysis[] = (data || []).map((item: any) => ({
         id: item.id,
-        lga_name: item.lga_data?.name || 'Unknown LGA',
+        lga_name: item.lga_gap_scores?.name || 'Unknown LGA',
         sector: item.sectors?.name || 'All Sectors',
         gap_score: parseFloat(item.gap_score),
         is_critical_gap: parseFloat(item.gap_score) > 0.8,
         duplication_risk: parseFloat(item.gap_score) < 0.3 ? 'High' : parseFloat(item.gap_score) < 0.6 ? 'Medium' : 'Low',
-        summary: `Gap score of ${(parseFloat(item.gap_score) * 100).toFixed(0)}% identified in ${item.lga_data?.name || 'this LGA'}.`,
+        summary: `Gap score of ${(parseFloat(item.gap_score) * 100).toFixed(0)}% identified in ${item.lga_gap_scores?.name || 'this LGA'}.`,
         recommendation: parseFloat(item.gap_score) > 0.8 
           ? 'Immediate intervention required to address critical service gaps.' 
           : 'Monitor situation and coordinate with existing partners.',

@@ -66,7 +66,7 @@ BEGIN NEW.updated_at = now(); RETURN NEW; END;
 $$ LANGUAGE plpgsql;
 
 -- ── 1. LGA_DATA ──────────────────────
-CREATE TABLE IF NOT EXISTS lga_data (
+CREATE TABLE IF NOT EXISTS lga_gap_scores (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
     state TEXT NOT NULL,
@@ -155,7 +155,7 @@ CREATE TABLE IF NOT EXISTS organisations (
   email         TEXT,
   phone         TEXT,
   address       TEXT,
-  lga_id        INTEGER REFERENCES lga_data(id),
+  lga_id        INTEGER REFERENCES lga_gap_scores(id),
 
   -- Social
   twitter_handle TEXT,
@@ -207,7 +207,7 @@ CREATE TABLE IF NOT EXISTS organisation_sectors (
 -- ── 5. ORGANISATION ↔ LGA COVERAGE (many-to-many) ────────────
 CREATE TABLE IF NOT EXISTS organisation_lgas (
   organisation_id UUID NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
-  lga_id          INTEGER NOT NULL REFERENCES lga_data(id),
+  lga_id          INTEGER NOT NULL REFERENCES lga_gap_scores(id),
   coverage_type   TEXT NOT NULL DEFAULT 'operational',
   evidence_type   TEXT,  -- 'self_declared','ocha_3w','annual_report','admin_confirmed'
   since_year      SMALLINT,
@@ -219,7 +219,7 @@ CREATE TABLE IF NOT EXISTS organisation_lgas (
 CREATE TABLE IF NOT EXISTS organisation_lga_history (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organisation_id UUID NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
-  lga_id          INTEGER NOT NULL REFERENCES lga_data(id),
+  lga_id          INTEGER NOT NULL REFERENCES lga_gap_scores(id),
   added_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   removed_at      TIMESTAMPTZ,
   added_by        TEXT NOT NULL DEFAULT 'self_registration',
@@ -254,7 +254,7 @@ CREATE TABLE IF NOT EXISTS programmes (
 -- Programme ↔ LGA coverage
 CREATE TABLE IF NOT EXISTS programme_lgas (
   programme_id UUID NOT NULL REFERENCES programmes(id) ON DELETE CASCADE,
-  lga_id       INTEGER NOT NULL REFERENCES lga_data(id),
+  lga_id       INTEGER NOT NULL REFERENCES lga_gap_scores(id),
   PRIMARY KEY (programme_id, lga_id)
 );
 
@@ -293,7 +293,7 @@ CREATE TABLE IF NOT EXISTS fraud_reports (
 -- ── 9. GAP SCORES (nightly computed) ─────────────────────────
 CREATE TABLE IF NOT EXISTS lga_gap_scores (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  lga_id          INTEGER NOT NULL REFERENCES lga_data(id),
+  lga_id          INTEGER NOT NULL REFERENCES lga_gap_scores(id),
   sector_id       SMALLINT REFERENCES sectors(id),  -- NULL = all sectors
   gap_score       NUMERIC(5,4) NOT NULL,
   weighted_supply NUMERIC(8,4),

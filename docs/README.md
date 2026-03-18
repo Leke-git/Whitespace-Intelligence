@@ -10,7 +10,7 @@ Whitespace is built as a coordination intelligence platform.
 ## Data Model
 - `organizations`: Verified NGO profiles.
 - `interventions`: Logged activities (Sector, LGA, Budget).
-- `lga_data`: 774 LGAs with Need Index scores.
+- `lga_gap_scores`: 774 LGAs with Need Index scores.
 
 ## Coordination Logic
 The platform identifies "Gaps" by comparing the `need_index` of an LGA with the number of active `interventions` in that LGA for a specific sector.
