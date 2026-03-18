@@ -7,11 +7,13 @@ import Navbar from '@/components/Navbar';
 import { supabase } from '@/lib/supabase';
 import { Search, Filter, ShieldCheck, ExternalLink, MapPin, Users } from 'lucide-react';
 import { motion } from 'motion/react';
+import Link from 'next/link';
 import Image from 'next/image';
 
 interface Organisation {
   id: string;
   legal_name: string;
+  slug: string;
   cac_number: string;
   trust_tier: string;
   description: string;
@@ -120,7 +122,9 @@ export default function RegistryPage() {
                   </div>
                 </div>
                 
-                <h3 className="text-xl font-bold text-slate-900 mb-2">{org.legal_name}</h3>
+                <Link href={`/org/${org.slug}`} className="group/card">
+                  <h3 className="text-xl font-bold text-slate-900 mb-2 group-hover/card:text-emerald-600 transition-colors">{org.legal_name}</h3>
+                </Link>
                 <p className="text-slate-500 text-sm mb-4 font-mono uppercase tracking-tight">CAC: {org.cac_number}</p>
                 <p className="text-slate-600 text-sm line-clamp-3 mb-6 flex-grow">
                   {org.description || "No description provided."}
