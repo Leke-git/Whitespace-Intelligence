@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { MapContainer, TileLayer, GeoJSON, ZoomControl, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import type { Feature, GeoJsonObject } from 'geojson';
@@ -65,6 +65,7 @@ function GeoJsonLayer({ geoJson, lgaMap, filteredIds, mapMode, onSelectLga, onHo
   onHoverLga: (lga: LGA | null) => void;
 }) {
   const map = useMap();
+  const hoveredRef = useRef<string | null>(null);
 
   const styleFeature = useCallback((feature?: Feature) => {
     const name = (feature?.properties?.shapeName as string) ?? '';
@@ -90,10 +91,14 @@ function GeoJsonLayer({ geoJson, lgaMap, filteredIds, mapMode, onSelectLga, onHo
       mouseover(e: L.LeafletMouseEvent) {
         (e.target as L.Path).setStyle({ weight: 2, color: '#10b981', fillOpacity: 0.92 });
         (e.target as L.Path).bringToFront();
-        onHoverLga(lga);
+        if (hoveredRef.current !== lga.id.toString()) {
+          hoveredRef.current = lga.id.toString();
+          onHoverLga(lga);
+        }
       },
       mouseout(e: L.LeafletMouseEvent) {
         (e.target as L.Path).setStyle(styleFeature(feature));
+        hoveredRef.current = null;
         onHoverLga(null);
       },
       click(e: L.LeafletMouseEvent) {
@@ -105,7 +110,7 @@ function GeoJsonLayer({ geoJson, lgaMap, filteredIds, mapMode, onSelectLga, onHo
 
   return (
     <GeoJSON
-      key={`${mapMode}-${filteredIds.size}`}
+      key={`${mapMode}`}
       data={geoJson}
       style={styleFeature}
       onEachFeature={onEachFeature}
