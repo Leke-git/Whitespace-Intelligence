@@ -149,6 +149,13 @@ CREATE TABLE IF NOT EXISTS organisations (
   -- Description
   mission       TEXT,
   description   TEXT,
+  impact_summary TEXT,
+
+  -- Branding
+  hero_image_url TEXT,
+  brand_color    TEXT, -- Hex code
+  testimonial_quote TEXT,
+  testimonial_author TEXT,
 
   -- Contact
   website       TEXT,

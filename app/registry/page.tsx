@@ -18,6 +18,11 @@ interface Organisation {
   email: string;
   website: string;
   logo_url: string;
+  hero_image_url?: string;
+  brand_color?: string;
+  impact_summary?: string;
+  testimonial_quote?: string;
+  testimonial_author?: string;
 }
 
 export default function RegistryPage() {
