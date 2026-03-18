@@ -140,12 +140,10 @@ export default function MapPage() {
         lga.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         lga.state.toLowerCase().includes(searchTerm.toLowerCase());
       const matchState  = !selectedState || lga.state === selectedState;
-      const matchSector =
-        selectedSectors.length === 0 ||
-        programmes.some(p => p.lga_id === lga.id && selectedSectors.includes(p.sector));
+      const matchSector = true;
       return matchSearch && matchState && matchSector;
     });
-  }, [lgas, searchTerm, selectedState, selectedSectors, programmes]);
+  }, [lgas, searchTerm, selectedState]);
 
   const criticalCount = useMemo(
     () => lgas.filter(l => (l.gap_score ?? 0) > 0.8).length,
