@@ -39,7 +39,7 @@ export default function Navbar({ hideLogo = false }: { hideLogo?: boolean }) {
   return (
     <nav className="sticky top-0 z-50 bg-white border-b border-slate-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
+        <div className="flex justify-center items-center gap-x-4 sm:gap-x-8 md:gap-x-12 lg:gap-x-16 h-16">
           <div className="flex items-center">
             {!hideLogo && (
               <Link href="/" className="flex items-center gap-2">
@@ -54,7 +54,7 @@ export default function Navbar({ hideLogo = false }: { hideLogo?: boolean }) {
           </div>
 
           {/* Desktop Nav */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center gap-x-4 sm:gap-x-8 md:gap-x-12">
             {navLinks.filter(link => !link.protected || user).map((link) => (
               <Link
                 key={link.name}
