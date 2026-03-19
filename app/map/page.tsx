@@ -104,7 +104,7 @@ export default function MapPage() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  const activeLga = selectedLga || hoveredLga;
+  const activeLga = isMobile ? selectedLga : (selectedLga || hoveredLga);
 
   // ── Fetch DB data ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -151,9 +151,14 @@ export default function MapPage() {
       lgaLinks
         .map(p => SECTOR_NAMES[p.programmes?.sector_id])
         .filter(Boolean)
-    );
+    ).size > 0;
+    
     const gaps = ['Health','Education','WASH','Nutrition','Protection']
-      .filter(s => !coveredNames.has(s));
+      .filter(s => {
+        const sectorId = Object.entries(SECTOR_NAMES).find(([_, name]) => name === s)?.[0];
+        return !lgaLinks.some(p => p.programmes?.sector_id === Number(sectorId));
+      });
+
     return { 
       orgCount: uniqueOrgs, 
       progCount: lgaLinks.length, 
@@ -392,40 +397,64 @@ export default function MapPage() {
           </div>
 
           {/* ── Floating controls ────────────────────────────────────────── */}
-          <div className="absolute top-6 right-6 flex flex-col gap-2 z-[1000]">
-            <button className="p-3 bg-white/80 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-all">
-              <Filter className="w-5 h-5 text-slate-600" />
-            </button>
-            <button className="p-3 bg-white/80 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-all">
-              <Info className="w-5 h-5 text-slate-600" />
-            </button>
-          </div>
+          {!isMobile && (
+            <div className="absolute top-6 right-6 flex flex-col gap-2 z-[1000]">
+              <button className="p-3 bg-white/80 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-all">
+                <Filter className="w-5 h-5 text-slate-600" />
+              </button>
+              <button className="p-3 bg-white/80 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-all">
+                <Info className="w-5 h-5 text-slate-600" />
+              </button>
+            </div>
+          )}
 
-          {/* ── LGA info card ────────────────────────────────────────────── */}
+          {/* ── LGA info card / Bottom Sheet ────────────────────────────────────────────── */}
           <AnimatePresence mode="wait">
             {activeLga && stats && (
               <motion.div
                 key={activeLga.id}
-                initial={{ x: -24, opacity: 0 }}
-                animate={{ 
+                initial={isMobile ? { y: '100%', opacity: 0 } : { x: -24, opacity: 0 }}
+                animate={isMobile ? { 
+                  y: 0, 
+                  opacity: 1,
+                  left: 0,
+                  bottom: 0,
+                  top: 'auto',
+                  width: '100%'
+                } : { 
                   x: 0, 
                   opacity: 1,
-                  left: isSidebarOpen ? 320 + 24 : 24 
+                  left: isSidebarOpen ? 320 + 24 : 24,
+                  top: 24,
+                  bottom: 'auto',
+                  width: '20rem'
                 }}
-                exit={{ x: -24, opacity: 0 }}
+                exit={isMobile ? { y: '100%', opacity: 0 } : { x: -24, opacity: 0 }}
                 transition={{ 
                   left: { duration: 0.3, ease: 'easeInOut' },
-                  default: { duration: 0.18, ease: 'easeOut' }
+                  default: { duration: 0.25, ease: 'easeOut' }
                 }}
-                className="absolute top-6 w-80 z-[1055]"
+                className={`absolute z-[1055] ${isMobile ? 'px-4 pb-4' : ''}`}
               >
-                <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+                <div className={`bg-white/90 backdrop-blur-2xl shadow-2xl border border-slate-200 overflow-hidden ${
+                  isMobile ? 'rounded-t-3xl rounded-b-xl' : 'rounded-2xl'
+                }`}>
+                  {/* Mobile Drag Handle */}
+                  {isMobile && (
+                    <div className="w-full flex justify-center pt-3 pb-1">
+                      <div className="w-12 h-1.5 bg-slate-200 rounded-full" />
+                    </div>
+                  )}
+
                   {/* Header */}
-                  <div className="p-5 border-b border-slate-100 bg-slate-50/50">
+                  <div className={`p-5 border-b border-slate-100 ${isMobile ? 'pt-2' : 'bg-slate-50/50'}`}>
                     <div className="flex justify-between items-start mb-1">
-                      <h2 className="text-xl font-bold text-slate-900 leading-tight pr-2">
-                        {activeLga.name}
-                      </h2>
+                      <div className="flex-grow">
+                        <h2 className="text-xl font-bold text-slate-900 leading-tight pr-2">
+                          {activeLga.name}
+                        </h2>
+                        <p className="text-xs text-slate-500 font-medium">{activeLga.state} State</p>
+                      </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
                           (activeLga.gap_score ?? 0) > 0.7
@@ -437,27 +466,26 @@ export default function MapPage() {
                           {(activeLga.gap_score ?? 0) > 0.7 ? 'Critical'
                             : (activeLga.gap_score ?? 0) > 0.4 ? 'Elevated' : 'Stable'}
                         </span>
-                        {selectedLga && (
+                        {(selectedLga || isMobile) && (
                           <button
                             onClick={() => setSelectedLga(null)}
-                            className="p-1 text-slate-400 hover:text-slate-600 transition-colors"
+                            className="p-1.5 bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
                           >
                             <X className="w-4 h-4" />
                           </button>
                         )}
                       </div>
                     </div>
-                    <p className="text-xs text-slate-500 font-medium">{activeLga.state} State</p>
                   </div>
 
                   {/* Metrics */}
                   <div className="p-5 space-y-4">
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="p-3 bg-white/40 rounded-xl border border-slate-100">
+                      <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-100">
                         <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Active NGOs</div>
                         <div className="text-2xl font-bold text-slate-900">{stats.orgCount}</div>
                       </div>
-                      <div className="p-3 bg-white/40 rounded-xl border border-slate-100">
+                      <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-100">
                         <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Programmes</div>
                         <div className="text-2xl font-bold text-slate-900">{stats.progCount}</div>
                       </div>
@@ -503,11 +531,11 @@ export default function MapPage() {
                     )}
                   </div>
 
-                  {/* CTA — only when pinned by click */}
-                  {selectedLga && (
+                  {/* CTA — only when pinned by click or on mobile */}
+                  {(selectedLga || isMobile) && (
                     <Link
                       href={`/lga/${activeLga.id}`}
-                      className="flex items-center justify-center gap-2 w-full py-3 bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-colors"
+                      className="flex items-center justify-center gap-2 w-full py-4 bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-colors"
                     >
                       View full LGA profile
                       <ChevronRight className="w-4 h-4" />

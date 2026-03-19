@@ -163,6 +163,7 @@ function GeoJsonLayer({ geoJson, lgaMap, filteredIds, mapMode, onSelectLga, onHo
 
     layer.on({
       mouseover(e: L.LeafletMouseEvent) {
+        if (window.matchMedia('(pointer: coarse)').matches) return;
         (e.target as L.Path).setStyle({ weight: 2, color: '#10b981', fillOpacity: 0.92 });
         (e.target as L.Path).bringToFront();
         if (hoveredRef.current !== lga.id.toString()) {
@@ -171,6 +172,7 @@ function GeoJsonLayer({ geoJson, lgaMap, filteredIds, mapMode, onSelectLga, onHo
         }
       },
       mouseout(e: L.LeafletMouseEvent) {
+        if (window.matchMedia('(pointer: coarse)').matches) return;
         (e.target as L.Path).setStyle(styleFeature(feature));
         hoveredRef.current = null;
         onHoverLga(null);
