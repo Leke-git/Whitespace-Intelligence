@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useRef } from 'react';
-import { MapContainer, TileLayer, GeoJSON, ZoomControl, useMap } from 'react-leaflet';
+import { useCallback, useRef, useEffect } from 'react';
+import { MapContainer, GeoJSON, ZoomControl, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import type { Feature, GeoJsonObject } from 'geojson';
 
@@ -65,6 +65,79 @@ function GeoJsonLayer({ geoJson, lgaMap, filteredIds, mapMode, onSelectLga, onHo
   onHoverLga: (lga: LGA | null) => void;
 }) {
   const map = useMap();
+  useEffect(() => {
+    const STATE_LABELS: [number, number, string][] = [
+      [7.524724, 5.430890, 'Abia'],
+      [12.438058, 9.325049, 'Adamawa'],
+      [7.872159, 4.929986, 'Akwa Ibom'],
+      [7.006839, 6.275765, 'Anambra'],
+      [9.844166, 10.315830, 'Bauchi'],
+      [5.898713, 4.867776, 'Bayelsa'],
+      [8.836275, 7.350820, 'Benue'],
+      [13.151, 11.833, 'Borno'],
+      [8.327, 5.960, 'Cross River'],
+      [5.679, 5.686, 'Delta'],
+      [6.136, 6.718, 'Ebonyi'],
+      [6.338, 6.348, 'Edo'],
+      [5.221, 7.719, 'Ekiti'],
+      [7.510, 6.460, 'Enugu'],
+      [10.653, 10.452, 'Gombe'],
+      [7.026, 5.487, 'Imo'],
+      [9.561, 11.745, 'Jigawa'],
+      [7.877, 10.536, 'Kaduna'],
+      [8.592, 11.948, 'Kano'],
+      [7.610, 12.380, 'Katsina'],
+      [4.197, 11.313, 'Kebbi'],
+      [6.750, 7.799, 'Kogi'],
+      [4.841, 8.500, 'Kwara'],
+      [3.379, 6.524, 'Lagos'],
+      [8.519, 8.918, 'Nasarawa'],
+      [6.548, 9.981, 'Niger'],
+      [3.947, 7.003, 'Ogun'],
+      [5.208, 7.250, 'Ondo'],
+      [4.561, 7.563, 'Osun'],
+      [3.947, 7.855, 'Oyo'],
+      [8.894, 9.218, 'Plateau'],
+      [7.049, 4.772, 'Rivers'],
+      [5.233, 12.917, 'Sokoto'],
+      [11.333, 8.000, 'Taraba'],
+      [11.833, 12.000, 'Yobe'],
+      [6.235, 12.170, 'Zamfara'],
+      [7.491, 9.057, 'FCT'],
+    ];
+
+    const markers: L.Marker[] = [];
+
+    STATE_LABELS.forEach(([lng, lat, name]) => {
+      const icon = L.divIcon({
+        className: '',
+        html: `<span style="
+          font-family: 'DM Sans', system-ui, sans-serif;
+          font-size: 9px;
+          font-weight: 700;
+          color: #64748b;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          white-space: nowrap;
+          pointer-events: none;
+          text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff;
+        ">${name}</span>`,
+        iconAnchor: [0, 0],
+      });
+
+      const marker = L.marker([lat, lng], {
+        icon,
+        interactive: false,
+        zIndexOffset: -1000,
+      }).addTo(map);
+
+      markers.push(marker);
+    });
+
+    return () => {
+      markers.forEach(m => map.removeLayer(m));
+    };
+  }, [map]);
   const hoveredRef = useRef<string | null>(null);
 
   const styleFeature = useCallback((feature?: Feature) => {
@@ -127,21 +200,11 @@ export default function LeafletMap({ lgas, onSelectLga, onHoverLga, mapMode = 'g
     <MapContainer
       center={[9.082, 8.6753]}
       zoom={6}
-      style={{ height: '100%', width: '100%' }}
+      style={{ height: '100%', width: '100%', background: '#ffffff' }}
+      className="white-map"
       zoomControl={false}
       attributionControl={false}
     >
-      <TileLayer
-        url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
-        subdomains="abcd"
-        maxZoom={14}
-      />
-      <TileLayer
-        url="https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png"
-        subdomains="abcd"
-        maxZoom={14}
-        pane="shadowPane"
-      />
       <ZoomControl position="bottomright" />
       {geoJson && (
         <GeoJsonLayer

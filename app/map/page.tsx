@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase';
 import {
   AlertTriangle, Loader2, Search, Shield,
   ChevronRight, X, Users, Activity, BarChart3, Layers, Info, Filter,
+  ChevronLeft, Menu as MenuIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { MapMode } from '@/components/LeafletMap';
@@ -88,6 +89,7 @@ export default function MapPage() {
   const [selectedState, setSelectedState] = useState('');
   const [mapMode, setMapMode]         = useState<MapMode>('gap');
   const [selectedSectors, setSelectedSectors] = useState<string[]>(SECTORS);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const activeLga = selectedLga || hoveredLga;
 
@@ -161,146 +163,152 @@ export default function MapPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <main className="h-screen flex bg-slate-50 overflow-hidden">
+    <main className="h-screen flex flex-col bg-slate-50 overflow-hidden">
+      <Navbar />
 
-      {/* ── Sidebar ────────────────────────────────────────────────────────── */}
-      <aside className="w-80 bg-white border-r border-slate-200 flex flex-col z-10 shadow-xl">
-
-        {/* Brand */}
-        <div className="p-5 border-b border-slate-100">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-emerald-600 rounded flex items-center justify-center">
-              <Shield className="text-white w-5 h-5" />
-            </div>
-            <span className="text-xl font-bold tracking-tight text-slate-900 font-display">
-              WHITESPACE
-            </span>
-          </Link>
-        </div>
-
-        <div className="flex-grow overflow-y-auto p-5 space-y-5">
-
-          {/* Mode switcher */}
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              Visualisation Mode
-            </label>
-            <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 rounded-xl">
-              {(Object.keys(MODE_META) as MapMode[]).map(mode => {
-                const { label, Icon } = MODE_META[mode];
-                const active = mapMode === mode;
-                return (
-                  <button
-                    key={mode}
-                    onClick={() => setMapMode(mode)}
-                    className={`flex flex-col items-center gap-1 py-2.5 px-1 rounded-lg text-[10px] font-bold transition-all ${
-                      active
-                        ? 'bg-white text-emerald-700 shadow-sm border border-emerald-100'
-                        : 'text-slate-500 hover:text-slate-700'
-                    }`}
-                  >
-                    <Icon className={`w-4 h-4 ${active ? 'text-emerald-600' : ''}`} />
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search LGA or State..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
-            />
-          </div>
-
-          {/* State */}
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">State</label>
-            <select
-              value={selectedState}
-              onChange={e => setSelectedState(e.target.value)}
-              className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+      <div className="flex-grow relative overflow-hidden">
+        {/* ── Sidebar ────────────────────────────────────────────────────────── */}
+        <AnimatePresence initial={false}>
+          {isSidebarOpen && (
+            <motion.aside
+              initial={{ x: -320 }}
+              animate={{ x: 0 }}
+              exit={{ x: -320 }}
+              transition={{ duration: 0.3, ease: 'easeInOut' }}
+              className="absolute top-0 left-0 w-80 h-full bg-white/80 backdrop-blur-xl border-r border-slate-200 flex flex-col z-[1050] shadow-2xl overflow-hidden"
             >
-              <option value="">All States</option>
-              {states.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
+              <div className="flex-grow overflow-y-auto p-5 space-y-5">
+                {/* Mode switcher */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Visualisation Mode
+                  </label>
+                  <div className="grid grid-cols-3 gap-1.5 p-1 bg-white/40 border border-slate-100 rounded-xl">
+                    {(Object.keys(MODE_META) as MapMode[]).map(mode => {
+                      const { label, Icon } = MODE_META[mode];
+                      const active = mapMode === mode;
+                      return (
+                        <button
+                          key={mode}
+                          onClick={() => setMapMode(mode)}
+                          className={`flex flex-col items-center gap-1 py-2.5 px-1 rounded-lg text-[10px] font-bold transition-all ${
+                            active
+                              ? 'bg-white text-emerald-700 shadow-sm border border-emerald-100'
+                              : 'text-slate-500 hover:text-slate-700'
+                          }`}
+                        >
+                          <Icon className={`w-4 h-4 ${active ? 'text-emerald-600' : ''}`} />
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
-          {/* Sectors */}
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sectors</label>
-            <div className="flex flex-wrap gap-1.5">
-              {SECTORS.map(sector => (
-                <label
-                  key={sector}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[10px] font-medium cursor-pointer transition-all ${
-                    selectedSectors.includes(sector)
-                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                      : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
-                  }`}
-                >
-                  <input type="checkbox" className="hidden"
-                    checked={selectedSectors.includes(sector)}
-                    onChange={() => handleSectorToggle(sector)} />
-                  {sector}
-                </label>
-              ))}
-            </div>
-          </div>
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search LGA or State..."
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    className="w-full max-w-full pl-10 pr-4 py-2 bg-white/40 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                  />
+                </div>
 
-          {/* Summary stats */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-              <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Showing</div>
-              <div className="text-lg font-bold text-slate-900">{filteredLgas.length}</div>
-              <div className="text-[10px] text-slate-400">of {lgas.length} LGAs</div>
-            </div>
-            <div className="p-3 bg-red-50 rounded-xl border border-red-100">
-              <div className="text-[10px] font-bold text-red-400 uppercase mb-1">Critical</div>
-              <div className="text-lg font-bold text-red-700">{criticalCount}</div>
-              <div className="text-[10px] text-red-400">gap &gt; 0.8</div>
-            </div>
-          </div>
+                {/* State */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">State</label>
+                  <select
+                    value={selectedState}
+                    onChange={e => setSelectedState(e.target.value)}
+                    className="w-full max-w-full p-2 bg-white/40 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="">All States</option>
+                    {states.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
 
-          {/* Gap alert */}
-          {criticalCount > 0 && (
-            <div className="p-4 bg-amber-50 rounded-xl border border-amber-100">
-              <div className="flex items-center gap-2 text-amber-800 font-bold text-sm mb-2">
-                <AlertTriangle className="w-4 h-4" />
-                Intelligence Alert
+                {/* Sectors */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sectors</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {SECTORS.map(sector => (
+                      <label
+                        key={sector}
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[10px] font-medium cursor-pointer transition-all ${
+                          selectedSectors.includes(sector)
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                            : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                        }`}
+                      >
+                        <input type="checkbox" className="hidden"
+                          checked={selectedSectors.includes(sector)}
+                          onChange={() => handleSectorToggle(sector)} />
+                        {sector}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Summary stats */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-3 bg-white/40 rounded-xl border border-slate-100">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Showing</div>
+                    <div className="text-lg font-bold text-slate-900">{filteredLgas.length}</div>
+                    <div className="text-[10px] text-slate-400">of {lgas.length} LGAs</div>
+                  </div>
+                  <div className="p-3 bg-red-50/40 rounded-xl border border-red-100">
+                    <div className="text-[10px] font-bold text-red-400 uppercase mb-1">Critical</div>
+                    <div className="text-lg font-bold text-red-700">{criticalCount}</div>
+                    <div className="text-[10px] text-red-400">gap &gt; 0.8</div>
+                  </div>
+                </div>
+
+                {/* Gap alert */}
+                {criticalCount > 0 && (
+                  <div className="p-4 bg-amber-50/40 rounded-xl border border-amber-100">
+                    <div className="flex items-center gap-2 text-amber-800 font-bold text-sm mb-2">
+                      <AlertTriangle className="w-4 h-4" />
+                      Intelligence Alert
+                    </div>
+                    <p className="text-xs text-amber-700 leading-relaxed">
+                      {criticalCount} LGAs show critical gaps despite high need scores.
+                    </p>
+                    <button
+                      className="mt-3 text-xs font-bold text-amber-900 underline"
+                      onClick={() => setMapMode('gap')}
+                    >
+                      View on map →
+                    </button>
+                  </div>
+                )}
               </div>
-              <p className="text-xs text-amber-700 leading-relaxed">
-                {criticalCount} LGAs show critical gaps despite high need scores.
-              </p>
-              <button
-                className="mt-3 text-xs font-bold text-amber-900 underline"
-                onClick={() => setMapMode('gap')}
-              >
-                View on map →
-              </button>
-            </div>
+
+              <div className="p-4 border-t border-slate-100">
+                <button className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg font-medium hover:bg-slate-800 transition-all text-sm">
+                  <Layers className="w-4 h-4" />
+                  Layer Settings
+                </button>
+              </div>
+            </motion.aside>
           )}
-        </div>
+        </AnimatePresence>
 
-        <div className="p-4 border-t border-slate-100">
-          <button className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg font-medium hover:bg-slate-800 transition-all text-sm">
-            <Layers className="w-4 h-4" />
-            Layer Settings
-          </button>
-        </div>
-      </aside>
+        {/* ── Map pane ────────────────────────────────────────────────────────── */}
+        <div className="w-full h-full relative bg-slate-200 overflow-hidden">
+          {/* Sidebar Toggle Button */}
+          <motion.button
+            animate={{ left: isSidebarOpen ? 320 + 24 : 24 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="absolute top-6 z-[1060] p-3 bg-white/80 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-all text-slate-600"
+            title={isSidebarOpen ? "Close Sidebar" : "Open Sidebar"}
+          >
+            {isSidebarOpen ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+          </motion.button>
 
-      {/* ── Map pane ────────────────────────────────────────────────────────── */}
-      <div className="flex-grow flex flex-col relative overflow-hidden">
-        <Navbar hideLogo={true} />
-
-        <div className="flex-grow relative bg-slate-200">
           <LeafletMap
             lgas={filteredLgas}
             onSelectLga={setSelectedLga}
@@ -310,7 +318,7 @@ export default function MapPage() {
           />
 
           {/* ── Legend ──────────────────────────────────────────────────── */}
-          <div className="absolute bottom-6 right-6 bg-white/95 backdrop-blur-sm p-4 rounded-2xl shadow-xl border border-slate-200 z-[1000] min-w-[170px]">
+          <div className="absolute bottom-6 right-6 bg-white/80 backdrop-blur-xl p-4 rounded-2xl shadow-xl border border-slate-200 z-[1000] min-w-[170px]">
             <div className="flex items-center gap-1.5 mb-3">
               <ModeIcon className="w-3.5 h-3.5 text-slate-400" />
               <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
@@ -329,10 +337,10 @@ export default function MapPage() {
 
           {/* ── Floating controls ────────────────────────────────────────── */}
           <div className="absolute top-6 right-6 flex flex-col gap-2 z-[1000]">
-            <button className="p-3 bg-white rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-all">
+            <button className="p-3 bg-white/80 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-all">
               <Filter className="w-5 h-5 text-slate-600" />
             </button>
-            <button className="p-3 bg-white rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-all">
+            <button className="p-3 bg-white/80 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-all">
               <Info className="w-5 h-5 text-slate-600" />
             </button>
           </div>
@@ -343,12 +351,19 @@ export default function MapPage() {
               <motion.div
                 key={activeLga.id}
                 initial={{ x: -24, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
+                animate={{ 
+                  x: 0, 
+                  opacity: 1,
+                  left: isSidebarOpen ? 320 + 24 : 24 
+                }}
                 exit={{ x: -24, opacity: 0 }}
-                transition={{ duration: 0.18, ease: 'easeOut' }}
-                className="absolute top-6 left-6 w-80 z-[1000]"
+                transition={{ 
+                  left: { duration: 0.3, ease: 'easeInOut' },
+                  default: { duration: 0.18, ease: 'easeOut' }
+                }}
+                className="absolute top-6 w-80 z-[1055]"
               >
-                <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+                <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
                   {/* Header */}
                   <div className="p-5 border-b border-slate-100 bg-slate-50/50">
                     <div className="flex justify-between items-start mb-1">
@@ -382,11 +397,11 @@ export default function MapPage() {
                   {/* Metrics */}
                   <div className="p-5 space-y-4">
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                      <div className="p-3 bg-white/40 rounded-xl border border-slate-100">
                         <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Active NGOs</div>
                         <div className="text-2xl font-bold text-slate-900">{stats.orgCount}</div>
                       </div>
-                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                      <div className="p-3 bg-white/40 rounded-xl border border-slate-100">
                         <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Programmes</div>
                         <div className="text-2xl font-bold text-slate-900">{stats.progCount}</div>
                       </div>

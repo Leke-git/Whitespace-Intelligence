@@ -52,3 +52,15 @@ h1, h2, h3, h4, h5, h6 {
 .btn-primary:hover {
   background-color: var(--color-primary-dark);
 }
+
+.white-map {
+  background: #ffffff !important;
+}
+
+.white-map .leaflet-tile-pane {
+  display: none;
+}
+
+.white-map .leaflet-container {
+  background: #ffffff !important;
+}

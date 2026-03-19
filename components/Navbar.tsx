@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
 
-export default function Navbar({ hideLogo = false }: { hideLogo?: boolean }) {
+export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
 
@@ -37,24 +37,22 @@ export default function Navbar({ hideLogo = false }: { hideLogo?: boolean }) {
   };
 
   return (
-    <nav className="sticky top-0 z-50 bg-white border-b border-slate-200">
+    <nav className="sticky top-0 z-50 bg-white border-b border-slate-200 w-full">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-center items-center gap-x-4 sm:gap-x-8 md:gap-x-12 lg:gap-x-16 h-16">
-          <div className="flex items-center">
-            {!hideLogo && (
-              <Link href="/" className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-emerald-600 rounded flex items-center justify-center">
-                  <Shield className="text-white w-5 h-5" />
-                </div>
-                <span className="text-xl font-bold tracking-tight text-slate-900 font-display">
-                  WHITESPACE
-                </span>
-              </Link>
-            )}
+        <div className="flex justify-between items-center h-16">
+          <div className="flex items-center flex-shrink-0">
+            <Link href="/" className="flex items-center gap-2 mr-8">
+              <div className="w-8 h-8 bg-emerald-600 rounded flex items-center justify-center flex-shrink-0">
+                <Shield className="text-white w-5 h-5" />
+              </div>
+              <span className="text-xl font-bold tracking-tight text-slate-900 font-display whitespace-nowrap">
+                WHITESPACE
+              </span>
+            </Link>
           </div>
 
-          {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-x-4 sm:gap-x-8 md:gap-x-12">
+          {/* Desktop Nav - Hidden on smaller screens to prevent breaking */}
+          <div className="hidden lg:flex items-center gap-x-8 whitespace-nowrap">
             {navLinks.filter(link => !link.protected || user).map((link) => (
               <Link
                 key={link.name}
@@ -83,11 +81,11 @@ export default function Navbar({ hideLogo = false }: { hideLogo?: boolean }) {
             )}
           </div>
 
-          {/* Mobile Menu Button */}
-          <div className="md:hidden flex items-center">
+          {/* Hamburger Menu Button - Visible on lg and below if content is tight, but here we force it below lg */}
+          <div className="lg:hidden flex items-center">
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="text-slate-600 hover:text-slate-900"
+              className="p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-colors"
             >
               {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -95,14 +93,14 @@ export default function Navbar({ hideLogo = false }: { hideLogo?: boolean }) {
         </div>
       </div>
 
-      {/* Mobile Nav */}
+      {/* Mobile/Tablet Nav */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-white border-t border-slate-100 overflow-hidden"
+            className="lg:hidden bg-white border-t border-slate-100 overflow-hidden"
           >
             <div className="px-4 pt-2 pb-6 space-y-1">
               {navLinks.filter(link => !link.protected || user).map((link) => (
