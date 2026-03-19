@@ -3,13 +3,14 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { supabase } from '@/lib/supabase';
 import { Zap, AlertTriangle, TrendingUp, MapPin, Search, Filter, Info, ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface GapAnalysis {
-  id: string;
+  id: number;
   lga_name: string;
   sector: string;
   gap_score: number;
@@ -30,13 +31,7 @@ export default function IntelligencePage() {
     
     const { data, error } = await supabase
       .from('lga_gap_scores')
-      .select(`
-        id,
-        gap_score,
-        computed_at,
-        lga_gap_scores (name),
-        sectors (name)
-      `)
+      .select('id, name, state, gap_score, updated_at, primary_needs')
       .order('gap_score', { ascending: false })
       .limit(20);
 
@@ -45,7 +40,7 @@ export default function IntelligencePage() {
       // Fallback to dummy data for MVP demonstration
       const dummyData: GapAnalysis[] = [
         {
-          id: '1',
+          id: 1,
           lga_name: 'Maiduguri',
           sector: 'Nutrition',
           gap_score: 0.92,
@@ -56,7 +51,7 @@ export default function IntelligencePage() {
           created_at: new Date().toISOString()
         },
         {
-          id: '2',
+          id: 2,
           lga_name: 'Kano Municipal',
           sector: 'WASH',
           gap_score: 0.85,
@@ -67,7 +62,7 @@ export default function IntelligencePage() {
           created_at: new Date().toISOString()
         },
         {
-          id: '3',
+          id: 3,
           lga_name: 'Ikeja',
           sector: 'Education',
           gap_score: 0.45,
@@ -82,16 +77,16 @@ export default function IntelligencePage() {
     } else {
       const mappedData: GapAnalysis[] = (data || []).map((item: any) => ({
         id: item.id,
-        lga_name: item.lga_gap_scores?.name || 'Unknown LGA',
-        sector: item.sectors?.name || 'All Sectors',
+        lga_name: item.name || 'Unknown LGA',
+        sector: (item.primary_needs && item.primary_needs.length > 0) ? item.primary_needs[0] : 'General',
         gap_score: parseFloat(item.gap_score),
         is_critical_gap: parseFloat(item.gap_score) > 0.8,
         duplication_risk: parseFloat(item.gap_score) < 0.3 ? 'High' : parseFloat(item.gap_score) < 0.6 ? 'Medium' : 'Low',
-        summary: `Gap score of ${(parseFloat(item.gap_score) * 100).toFixed(0)}% identified in ${item.lga_gap_scores?.name || 'this LGA'}.`,
+        summary: `Gap score of ${(parseFloat(item.gap_score) * 100).toFixed(0)}% identified in ${item.name || 'this LGA'}. Primary needs include ${item.primary_needs?.join(', ') || 'various sectors'}.`,
         recommendation: parseFloat(item.gap_score) > 0.8 
-          ? 'Immediate intervention required to address critical service gaps.' 
-          : 'Monitor situation and coordinate with existing partners.',
-        created_at: item.computed_at
+          ? 'Immediate intervention required to address critical service gaps. Coordinate with state emergency management.' 
+          : 'Monitor situation and coordinate with existing partners to optimize resource allocation.',
+        created_at: item.updated_at
       }));
       setAnalyses(mappedData);
     }
@@ -257,10 +252,22 @@ export default function IntelligencePage() {
                     </div>
                   </div>
                 </div>
-                <button className="flex items-center gap-2 text-slate-900 font-bold hover:text-emerald-600 transition-colors">
-                  View Map
-                  <ArrowRight className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-4">
+                  <Link 
+                    href="/map"
+                    className="text-slate-400 hover:text-slate-600 transition-colors"
+                    title="View on Map"
+                  >
+                    <MapPin className="w-4 h-4" />
+                  </Link>
+                  <Link 
+                    href={`/lga/${analysis.id}`}
+                    className="flex items-center gap-2 text-slate-900 font-bold hover:text-emerald-600 transition-colors"
+                  >
+                    View Profile
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
               </div>
             </motion.div>
           ))}

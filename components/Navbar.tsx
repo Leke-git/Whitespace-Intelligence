@@ -29,6 +29,7 @@ export default function Navbar() {
     { name: 'Coordination Map', href: '/map', icon: Map },
     { name: 'NGO Registry', href: '/registry', icon: Users },
     { name: 'Intelligence', href: '/intelligence', icon: LayoutDashboard },
+    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, protected: true },
     { name: 'Log Activity', href: '/programme/new', icon: Shield, protected: true },
   ];
 

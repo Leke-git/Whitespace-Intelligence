@@ -81,7 +81,11 @@ export default function MapPage() {
   const [loading, setLoading]         = useState(true);
   const [geoLoading, setGeoLoading]   = useState(true);
   const [lgas, setLgas]               = useState<any[]>([]);
-  const [programmes, setProgrammes]   = useState<any[]>([]);
+  const [programmes, setProgrammes]   = useState<{
+    lga_id: number;
+    programme_id: number;
+    programmes: any;
+  }[]>([]);
   const [geoJson, setGeoJson]         = useState<GeoJsonObject | null>(null);
   const [selectedLga, setSelectedLga] = useState<any>(null);
   const [hoveredLga, setHoveredLga]   = useState<any>(null);
@@ -90,6 +94,15 @@ export default function MapPage() {
   const [mapMode, setMapMode]         = useState<MapMode>('gap');
   const [selectedSectors, setSelectedSectors] = useState<string[]>(SECTORS);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // ── Mobile detection ───────────────────────────────────────────────────────
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const activeLga = selectedLga || hoveredLga;
 
@@ -99,7 +112,7 @@ export default function MapPage() {
       setLoading(true);
       const [{ data: lgaData }, { data: progData }] = await Promise.all([
         supabase.from('lga_gap_scores').select('*'),
-        supabase.from('programmes').select('*, organisations(legal_name)'),
+        supabase.from('programme_lgas').select('lga_id, programme_id, programmes(id, organisation_id, status, sector_id)'),
       ]);
       setLgas(lgaData ?? []);
       setProgrammes(progData ?? []);
@@ -124,11 +137,29 @@ export default function MapPage() {
   // ── Stats for hovered/selected LGA ────────────────────────────────────────
   const stats = useMemo(() => {
     if (!activeLga) return null;
-    const lgaProgs  = programmes.filter(p => p.lga_id === activeLga.id);
-    const orgs      = new Set(lgaProgs.map(p => p.organisation_id)).size;
-    const covered   = new Set(lgaProgs.map(p => p.sector));
-    const gaps      = SECTORS.filter(s => !covered.has(s));
-    return { orgCount: orgs, progCount: lgaProgs.length, gaps, gapCount: gaps.length };
+    const lgaLinks = programmes.filter(p => p.lga_id === activeLga.id);
+    const uniqueOrgs = new Set(
+      lgaLinks
+        .map(p => p.programmes?.organisation_id)
+        .filter(Boolean)
+    ).size;
+    const covered = new Set(lgaLinks.map(p => p.programmes?.sector_id));
+    const SECTOR_NAMES: Record<number, string> = {
+      1: 'Health', 2: 'Education', 3: 'WASH', 4: 'Nutrition', 5: 'Protection'
+    };
+    const coveredNames = new Set(
+      lgaLinks
+        .map(p => SECTOR_NAMES[p.programmes?.sector_id])
+        .filter(Boolean)
+    );
+    const gaps = ['Health','Education','WASH','Nutrition','Protection']
+      .filter(s => !coveredNames.has(s));
+    return { 
+      orgCount: uniqueOrgs, 
+      progCount: lgaLinks.length, 
+      gaps, 
+      gapCount: gaps.length 
+    };
   }, [activeLga, programmes]);
 
   const states = useMemo(
@@ -163,7 +194,7 @@ export default function MapPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <main className="h-screen flex flex-col bg-slate-50 overflow-hidden">
+    <main className="h-screen flex flex-col bg-slate-100 overflow-hidden">
       <Navbar />
 
       <div className="flex-grow relative overflow-hidden">
@@ -266,6 +297,24 @@ export default function MapPage() {
                   </div>
                 </div>
 
+                {/* Mobile Legend */}
+                <div className="md:hidden pt-2 space-y-3">
+                  <div className="flex items-center gap-1.5">
+                    <ModeIcon className="w-3.5 h-3.5 text-slate-400" />
+                    <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                      {legend.title}
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                    {legend.items.map(item => (
+                      <div key={item.label} className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-sm flex-shrink-0" style={{ background: item.color }} />
+                        <span className="text-[10px] font-medium text-slate-600">{item.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Gap alert */}
                 {criticalCount > 0 && (
                   <div className="p-4 bg-amber-50/40 rounded-xl border border-amber-100">
@@ -297,13 +346,20 @@ export default function MapPage() {
         </AnimatePresence>
 
         {/* ── Map pane ────────────────────────────────────────────────────────── */}
-        <div className="w-full h-full relative bg-slate-200 overflow-hidden">
+        <div className="w-full h-full relative bg-slate-100 overflow-hidden">
           {/* Sidebar Toggle Button */}
           <motion.button
-            animate={{ left: isSidebarOpen ? 320 + 24 : 24 }}
+            animate={{ 
+              left: isSidebarOpen 
+                ? (isMobile ? 320 - 52 : 320 + 24) 
+                : 24,
+              top: isMobile && isSidebarOpen ? 16 : 24
+            }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="absolute top-6 z-[1060] p-3 bg-white/80 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-all text-slate-600"
+            className={`absolute z-[1060] p-2.5 bg-white/80 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-all text-slate-600 ${
+              isMobile && isSidebarOpen ? 'ring-1 ring-slate-200/50' : ''
+            }`}
             title={isSidebarOpen ? "Close Sidebar" : "Open Sidebar"}
           >
             {isSidebarOpen ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
@@ -317,8 +373,8 @@ export default function MapPage() {
             geoJson={geoJson}
           />
 
-          {/* ── Legend ──────────────────────────────────────────────────── */}
-          <div className="absolute bottom-6 right-6 bg-white/80 backdrop-blur-xl p-4 rounded-2xl shadow-xl border border-slate-200 z-[1000] min-w-[170px]">
+          {/* ── Legend (Desktop only, moved above zoom controls) ────────────────── */}
+          <div className="hidden md:block absolute bottom-24 right-6 bg-white/80 backdrop-blur-xl p-4 rounded-2xl shadow-xl border border-slate-200 z-[999] min-w-[170px]">
             <div className="flex items-center gap-1.5 mb-3">
               <ModeIcon className="w-3.5 h-3.5 text-slate-400" />
               <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">

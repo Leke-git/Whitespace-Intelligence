@@ -1,41 +1,48 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { use, useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import Navbar from '@/components/Navbar';
 import { 
+  Download, 
+  ExternalLink, 
   MapPin, 
-  Globe, 
-  Mail, 
-  Phone, 
-  ShieldCheck, 
   Users, 
-  ArrowRight,
-  Heart,
-  Target,
-  Quote
+  Calendar, 
+  FileText, 
+  Image as ImageIcon,
+  ChevronRight,
+  ArrowLeft,
+  Globe,
+  Mail,
+  Phone,
+  Quote,
+  ShieldCheck,
+  LayoutGrid,
+  FileDown
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import Link from 'next/link';
 import Image from 'next/image';
 
 interface Organisation {
   id: string;
   legal_name: string;
   slug: string;
-  mission: string;
   description: string;
+  mission: string;
   impact_summary: string;
-  logo_url: string;
   hero_image_url: string;
   brand_color: string;
   testimonial_quote: string;
   testimonial_author: string;
+  logo_url: string;
   website: string;
   email: string;
   phone: string;
   address: string;
   trust_tier: string;
+  cac_number: string;
 }
 
 interface Programme {
@@ -43,61 +50,89 @@ interface Programme {
   name: string;
   description: string;
   status: string;
+  beneficiary_count: number;
+  sector_id: number;
 }
 
-export default function OrganisationLandingPage() {
-  const params = useParams();
-  const slug = params.slug as string;
-  
+interface Resource {
+  id: string;
+  title: string;
+  description: string;
+  url: string;
+  resource_type: 'report' | 'case_study' | 'financial_statement' | 'policy' | 'other';
+  file_size: string;
+}
+
+interface GalleryItem {
+  id: string;
+  image_url: string;
+  caption: string;
+  project_name: string;
+  category: string;
+}
+
+export default function OrganisationLandingPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params);
   const [org, setOrg] = useState<Organisation | null>(null);
   const [programmes, setProgrammes] = useState<Programme[]>([]);
+  const [resources, setResources] = useState<Resource[]>([]);
+  const [gallery, setGallery] = useState<GalleryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'gallery' | 'resources'>('overview');
 
   const fetchData = useCallback(async () => {
-    setLoading(true);
-    
-    // Fetch Org
+    // 1. Fetch Organisation
     const { data: orgData, error: orgError } = await supabase
       .from('organisations')
       .select('*')
       .eq('slug', slug)
       .single();
 
-    if (orgError) {
+    if (orgError || !orgData) {
       console.error('Error fetching organisation:', orgError);
-    } else {
-      setOrg(orgData);
-      
-      // Fetch Programmes
-      const { data: progData, error: progError } = await supabase
-        .from('programmes')
-        .select('*')
-        .eq('organisation_id', orgData.id)
-        .eq('status', 'active');
-        
-      if (!progError) {
-        setProgrammes(progData || []);
-      }
+      setLoading(false);
+      return;
     }
-    
+    setOrg(orgData);
+
+    // 2. Fetch Programmes
+    const { data: progData } = await supabase
+      .from('programmes')
+      .select('*')
+      .eq('organisation_id', orgData.id)
+      .order('created_at', { ascending: false });
+    setProgrammes(progData || []);
+
+    // 3. Fetch Resources
+    const { data: resData } = await supabase
+      .from('organisation_resources')
+      .select('*')
+      .eq('organisation_id', orgData.id)
+      .order('created_at', { ascending: false });
+    setResources(resData || []);
+
+    // 4. Fetch Gallery
+    const { data: gallData } = await supabase
+      .from('organisation_gallery')
+      .select('*')
+      .eq('organisation_id', orgData.id)
+      .order('created_at', { ascending: false });
+    setGallery(gallData || []);
+
     setLoading(false);
   }, [slug]);
 
   useEffect(() => {
-    let isMounted = true;
-    const load = async () => {
-      if (isMounted) {
-        await fetchData();
-      }
-    };
-    load();
-    return () => { isMounted = false; };
+    const timer = setTimeout(() => {
+      fetchData();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchData]);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
       </div>
     );
   }
@@ -105,9 +140,10 @@ export default function OrganisationLandingPage() {
   if (!org) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center p-4">
-        <h1 className="text-2xl font-bold text-slate-900 mb-2">Organisation Not Found</h1>
-        <p className="text-slate-600 mb-6">The NGO you are looking for does not exist or has been removed.</p>
-        <a href="/registry" className="text-emerald-600 font-medium hover:underline">Return to Registry</a>
+        <h1 className="text-2xl font-bold text-slate-900 mb-4">Organisation not found</h1>
+        <Link href="/registry" className="text-emerald-600 hover:underline flex items-center gap-2">
+          <ArrowLeft className="w-4 h-4" /> Back to Registry
+        </Link>
       </div>
     );
   }
@@ -115,249 +151,327 @@ export default function OrganisationLandingPage() {
   const brandColor = org.brand_color || '#10b981'; // Default emerald-500
 
   return (
-    <main className="min-h-screen bg-white selection:bg-emerald-100">
+    <main className="min-h-screen bg-slate-50 font-sans">
       <Navbar />
 
       {/* Hero Section */}
-      <section className="relative h-[80vh] flex items-center overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <Image
-            src={org.hero_image_url || `https://picsum.photos/seed/${org.slug}/1920/1080`}
-            alt={org.legal_name}
-            fill
-            className="object-cover brightness-[0.4]"
-            referrerPolicy="no-referrer"
+      <section className="relative h-[60vh] min-h-[400px] overflow-hidden">
+        {org.hero_image_url ? (
+          <Image 
+            src={org.hero_image_url} 
+            alt={org.legal_name} 
+            fill 
+            className="object-cover"
             priority
+            referrerPolicy="no-referrer"
           />
-        </div>
+        ) : (
+          <div className="absolute inset-0 bg-slate-900" style={{ backgroundColor: brandColor }} />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/40 to-transparent" />
         
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="max-w-3xl"
-          >
-            <div className="flex items-center gap-3 mb-6">
-              {org.trust_tier === 'verified' && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white text-xs font-semibold uppercase tracking-wider">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                  Verified NGO
+        <div className="absolute bottom-0 left-0 right-0 p-8 md:p-16">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-end gap-8">
+            <div className="w-32 h-32 md:w-48 md:h-48 bg-white rounded-2xl p-4 shadow-2xl relative overflow-hidden flex-shrink-0">
+              {org.logo_url ? (
+                <Image src={org.logo_url} alt={org.legal_name} fill className="object-contain p-4" referrerPolicy="no-referrer" />
+              ) : (
+                <Users className="w-full h-full text-slate-200" />
+              )}
+            </div>
+            <div className="flex-grow text-white pb-4">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4" />
+                  {org.trust_tier}
                 </span>
-              )}
+                <span className="text-white/60 text-sm font-mono uppercase tracking-tighter">CAC: {org.cac_number}</span>
+              </div>
+              <h1 className="text-4xl md:text-6xl font-bold mb-4 tracking-tight">{org.legal_name}</h1>
+              <div className="flex flex-wrap gap-6 text-white/80">
+                {org.address && <div className="flex items-center gap-2"><MapPin className="w-4 h-4" /> {org.address}</div>}
+                {org.website && <a href={org.website} target="_blank" className="flex items-center gap-2 hover:text-white transition-colors"><Globe className="w-4 h-4" /> Website</a>}
+              </div>
             </div>
-            
-            <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-[1.1] tracking-tight">
-              {org.legal_name}
-            </h1>
-            
-            <p className="text-xl md:text-2xl text-white/80 mb-10 leading-relaxed font-light">
-              {org.mission || org.description?.substring(0, 160) + '...'}
-            </p>
-            
-            <div className="flex flex-wrap gap-4">
-              <button 
-                style={{ backgroundColor: brandColor }}
-                className="px-8 py-4 rounded-full text-white font-bold text-lg hover:scale-105 transition-transform flex items-center gap-2 shadow-lg shadow-black/20"
+          </div>
+        </div>
+      </section>
+
+      {/* Navigation Tabs */}
+      <nav className="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 overflow-x-auto">
+          <div className="flex gap-8 py-4 min-w-max">
+            {[
+              { id: 'overview', label: 'Overview', icon: LayoutGrid },
+              { id: 'projects', label: 'Projects & Work', icon: ImageIcon },
+              { id: 'gallery', label: 'Gallery', icon: ImageIcon },
+              { id: 'resources', label: 'Reports & Resources', icon: FileDown },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex items-center gap-2 font-medium text-sm transition-all relative py-2 ${
+                  activeTab === tab.id ? 'text-slate-900' : 'text-slate-500 hover:text-slate-700'
+                }`}
               >
-                Support Our Mission
-                <ArrowRight className="w-5 h-5" />
+                <tab.icon className="w-4 h-4" />
+                {tab.label}
+                {activeTab === tab.id && (
+                  <motion.div 
+                    layoutId="activeTab" 
+                    className="absolute bottom-0 left-0 right-0 h-0.5" 
+                    style={{ backgroundColor: brandColor }}
+                  />
+                )}
               </button>
-              <button className="px-8 py-4 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white font-bold text-lg hover:bg-white/20 transition-all">
-                Learn More
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Stats / Impact Bar */}
-      <div className="relative z-20 -mt-12 max-w-5xl mx-auto px-4">
-        <div className="bg-white rounded-3xl shadow-2xl shadow-slate-200/50 border border-slate-100 p-8 md:p-12 grid grid-cols-1 md:grid-cols-3 gap-8 md:divide-x divide-slate-100">
-          <div className="text-center md:text-left">
-            <div className="flex items-center justify-center md:justify-start gap-2 text-slate-400 mb-2">
-              <Heart className="w-4 h-4" />
-              <span className="text-xs font-bold uppercase tracking-widest">Our Focus</span>
-            </div>
-            <p className="text-xl font-bold text-slate-900">Community Empowerment</p>
-          </div>
-          <div className="text-center md:text-left md:pl-8">
-            <div className="flex items-center justify-center md:justify-start gap-2 text-slate-400 mb-2">
-              <Target className="w-4 h-4" />
-              <span className="text-xs font-bold uppercase tracking-widest">Impact Goal</span>
-            </div>
-            <p className="text-xl font-bold text-slate-900">10,000+ Beneficiaries</p>
-          </div>
-          <div className="text-center md:text-left md:pl-8">
-            <div className="flex items-center justify-center md:justify-start gap-2 text-slate-400 mb-2">
-              <Users className="w-4 h-4" />
-              <span className="text-xs font-bold uppercase tracking-widest">Network</span>
-            </div>
-            <p className="text-xl font-bold text-slate-900">50+ Local Partners</p>
+            ))}
           </div>
         </div>
-      </div>
+      </nav>
 
-      {/* About Section */}
-      <section className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
-          <div>
-            <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-emerald-600 mb-4">About the Organisation</h2>
-            <h3 className="text-4xl md:text-5xl font-bold text-slate-900 mb-8 leading-tight">
-              Driving sustainable change through local action.
-            </h3>
-            <div className="space-y-6 text-lg text-slate-600 leading-relaxed">
-              <p>{org.description}</p>
+      <div className="max-w-7xl mx-auto px-4 py-12">
+        {activeTab === 'overview' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+            <div className="lg:col-span-2 space-y-12">
+              <section>
+                <h2 className="text-2xl font-bold text-slate-900 mb-6 italic serif">Mission & Vision</h2>
+                <p className="text-lg text-slate-700 leading-relaxed">
+                  {org.mission || org.description}
+                </p>
+              </section>
+
               {org.impact_summary && (
-                <div className="p-6 bg-slate-50 rounded-2xl border-l-4 border-emerald-500">
-                  <p className="font-medium text-slate-900 italic">&ldquo;{org.impact_summary}&rdquo;</p>
-                </div>
+                <section className="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm">
+                  <h2 className="text-2xl font-bold text-slate-900 mb-6 italic serif">Impact Summary</h2>
+                  <div className="prose prose-slate max-w-none text-slate-700">
+                    {org.impact_summary}
+                  </div>
+                </section>
+              )}
+
+              {org.testimonial_quote && (
+                <section className="relative py-12 px-8 bg-slate-900 rounded-3xl text-white overflow-hidden">
+                  <Quote className="absolute top-8 left-8 w-16 h-16 text-white/10" />
+                  <div className="relative z-10 max-w-2xl mx-auto text-center">
+                    <p className="text-2xl font-medium mb-8 italic leading-relaxed">
+                      &quot;{org.testimonial_quote}&quot;
+                    </p>
+                    <div className="flex items-center justify-center gap-4">
+                      <div className="w-12 h-0.5 bg-white/20" />
+                      <span className="font-bold tracking-widest uppercase text-sm">{org.testimonial_author}</span>
+                      <div className="w-12 h-0.5 bg-white/20" />
+                    </div>
+                  </div>
+                </section>
               )}
             </div>
-          </div>
-          <div className="relative aspect-square rounded-3xl overflow-hidden shadow-2xl">
-            <Image
-              src={`https://picsum.photos/seed/${org.slug}-about/800/800`}
-              alt="About Us"
-              fill
-              className="object-cover"
-              referrerPolicy="no-referrer"
-            />
-          </div>
-        </div>
-      </section>
 
-      {/* Testimonial Section */}
-      {org.testimonial_quote && (
-        <section className="py-24 bg-slate-900 text-white overflow-hidden relative">
-          <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/4 w-96 h-96 bg-emerald-500/20 rounded-full blur-[120px]" />
-          <div className="max-w-4xl mx-auto px-4 text-center relative z-10">
-            <Quote className="w-16 h-16 text-emerald-500 mx-auto mb-12 opacity-50" />
-            <blockquote className="text-3xl md:text-4xl font-medium leading-snug mb-10 italic">
-              &ldquo;{org.testimonial_quote}&rdquo;
-            </blockquote>
-            <div className="flex items-center justify-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center font-bold text-xl">
-                {org.testimonial_author?.charAt(0)}
+            <div className="space-y-8">
+              <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+                <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-6">Contact Information</h3>
+                <div className="space-y-4">
+                  {org.email && (
+                    <div className="flex items-center gap-3 text-slate-700">
+                      <Mail className="w-5 h-5 text-slate-400" />
+                      <a href={`mailto:${org.email}`} className="hover:text-emerald-600 transition-colors">{org.email}</a>
+                    </div>
+                  )}
+                  {org.phone && (
+                    <div className="flex items-center gap-3 text-slate-700">
+                      <Phone className="w-5 h-5 text-slate-400" />
+                      <span>{org.phone}</span>
+                    </div>
+                  )}
+                  {org.address && (
+                    <div className="flex items-start gap-3 text-slate-700">
+                      <MapPin className="w-5 h-5 text-slate-400 flex-shrink-0 mt-1" />
+                      <span>{org.address}</span>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="text-left">
-                <p className="font-bold text-xl">{org.testimonial_author}</p>
-                <p className="text-emerald-400 text-sm uppercase tracking-widest font-bold">Beneficiary</p>
+
+              <div className="bg-emerald-50 rounded-2xl p-6 border border-emerald-100">
+                <h3 className="text-sm font-bold uppercase tracking-widest text-emerald-800 mb-4">Verification Status</h3>
+                <p className="text-emerald-700 text-sm leading-relaxed mb-4">
+                  This organisation has been verified by the platform through rigorous documentation checks.
+                </p>
+                <div className="flex items-center gap-2 text-emerald-900 font-bold">
+                  <ShieldCheck className="w-5 h-5" />
+                  {org.trust_tier.toUpperCase()}
+                </div>
               </div>
             </div>
           </div>
-        </section>
-      )}
+        )}
 
-      {/* Programmes Section */}
-      {programmes.length > 0 && (
-        <section className="py-24 bg-slate-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-emerald-600 mb-4">Our Programmes</h2>
-              <h3 className="text-4xl font-bold text-slate-900">Current Initiatives</h3>
+        {activeTab === 'projects' && (
+          <div className="space-y-12">
+            <div className="flex items-center justify-between">
+              <h2 className="text-3xl font-bold text-slate-900 italic serif">Active Programmes & Projects</h2>
+              <span className="text-slate-500 font-mono">{programmes.length} Total</span>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {programmes.map((prog) => (
-                <div key={prog.id} className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl transition-all group">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center mb-6 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
-                    <Heart className="w-6 h-6" />
+                <motion.div 
+                  key={prog.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm hover:shadow-md transition-all group"
+                >
+                  <div className="flex items-center justify-between mb-6">
+                    <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-bold uppercase tracking-widest">
+                      {prog.status}
+                    </span>
+                    <div className="flex items-center gap-2 text-slate-400 text-sm">
+                      <Users className="w-4 h-4" />
+                      {prog.beneficiary_count || 0} Beneficiaries
+                    </div>
                   </div>
-                  <h4 className="text-xl font-bold text-slate-900 mb-4">{prog.name}</h4>
+                  <h3 className="text-2xl font-bold text-slate-900 mb-4 group-hover:text-emerald-600 transition-colors">{prog.name}</h3>
                   <p className="text-slate-600 leading-relaxed mb-6">
                     {prog.description}
                   </p>
-                  <button className="text-emerald-600 font-bold flex items-center gap-2 hover:gap-3 transition-all">
-                    View Details
-                    <ArrowRight className="w-4 h-4" />
+                  <button className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-slate-900 hover:gap-4 transition-all">
+                    View Details <ChevronRight className="w-4 h-4" />
                   </button>
-                </div>
+                </motion.div>
               ))}
+              {programmes.length === 0 && (
+                <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-dashed border-slate-200">
+                  <p className="text-slate-500">No active programmes listed yet.</p>
+                </div>
+              )}
             </div>
           </div>
-        </section>
-      )}
+        )}
 
-      {/* Contact & Footer */}
-      <section className="py-24 border-t border-slate-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
-            <div>
-              <h3 className="text-3xl font-bold text-slate-900 mb-8">Get in Touch</h3>
-              <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
-                    <MapPin className="w-5 h-5 text-slate-600" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-slate-900">Our Office</p>
-                    <p className="text-slate-600">{org.address || 'Address information not provided'}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
-                    <Mail className="w-5 h-5 text-slate-600" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-slate-900">Email Us</p>
-                    <p className="text-slate-600">{org.email}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
-                    <Phone className="w-5 h-5 text-slate-600" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-slate-900">Call Us</p>
-                    <p className="text-slate-600">{org.phone || 'Phone number not provided'}</p>
-                  </div>
-                </div>
-                {org.website && (
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
-                      <Globe className="w-5 h-5 text-slate-600" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-slate-900">Website</p>
-                      <a href={org.website} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline">
-                        {org.website.replace(/^https?:\/\//, '')}
-                      </a>
-                    </div>
-                  </div>
-                )}
-              </div>
+        {activeTab === 'gallery' && (
+          <div className="space-y-12">
+            <div className="flex items-center justify-between">
+              <h2 className="text-3xl font-bold text-slate-900 italic serif">Visual Proof of Work</h2>
+              <span className="text-slate-500 font-mono">{gallery.length} Photos</span>
             </div>
-            
-            <div className="bg-slate-50 p-10 rounded-3xl">
-              <h4 className="text-2xl font-bold text-slate-900 mb-6">Stay Updated</h4>
-              <p className="text-slate-600 mb-8">Subscribe to our newsletter to receive updates on our impact and upcoming programmes.</p>
-              <form className="space-y-4">
-                <input 
-                  type="email" 
-                  placeholder="Your email address" 
-                  className="w-full px-6 py-4 rounded-full border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none"
-                />
-                <button 
-                  type="button"
-                  style={{ backgroundColor: brandColor }}
-                  className="w-full py-4 rounded-full text-white font-bold shadow-lg shadow-black/5"
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {gallery.map((item) => (
+                <motion.div 
+                  key={item.id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="group relative aspect-square rounded-3xl overflow-hidden bg-slate-100"
                 >
-                  Subscribe
-                </button>
-              </form>
+                  <Image 
+                    src={item.image_url} 
+                    alt={item.caption || 'Gallery image'} 
+                    fill 
+                    className="object-cover transition-transform duration-500 group-hover:scale-110"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-6 flex flex-col justify-end">
+                    {item.project_name && (
+                      <span className="text-emerald-400 text-xs font-bold uppercase tracking-widest mb-2">
+                        {item.project_name}
+                      </span>
+                    )}
+                    <p className="text-white font-medium line-clamp-2">{item.caption}</p>
+                    {item.category && (
+                      <span className="mt-4 inline-block text-[10px] text-white/60 uppercase tracking-tighter">
+                        Category: {item.category}
+                      </span>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+              {gallery.length === 0 && (
+                <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-dashed border-slate-200">
+                  <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <ImageIcon className="text-slate-300 w-8 h-8" />
+                  </div>
+                  <p className="text-slate-500">No gallery items uploaded yet.</p>
+                </div>
+              )}
             </div>
           </div>
-          
-          <div className="mt-24 pt-8 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4 text-slate-400 text-sm">
-            <p>© 2026 {org.legal_name}. All rights reserved.</p>
-            <div className="flex gap-8">
-              <a href="#" className="hover:text-slate-600 transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-slate-600 transition-colors">Terms of Service</a>
+        )}
+
+        {activeTab === 'resources' && (
+          <div className="space-y-12">
+            <div className="flex items-center justify-between">
+              <h2 className="text-3xl font-bold text-slate-900 italic serif">Transparency & Reports</h2>
+              <span className="text-slate-500 font-mono">{resources.length} Documents</span>
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {resources.map((res) => (
+                <motion.div 
+                  key={res.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:border-emerald-200 transition-all flex items-start gap-6 group"
+                >
+                  <div className="w-14 h-14 rounded-xl bg-slate-50 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-50 transition-colors">
+                    <FileText className="w-7 h-7 text-slate-400 group-hover:text-emerald-500 transition-colors" />
+                  </div>
+                  <div className="flex-grow">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                        {res.resource_type.replace('_', ' ')}
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-400">{res.file_size}</span>
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900 mb-2">{res.title}</h3>
+                    <p className="text-sm text-slate-500 mb-6 line-clamp-2">{res.description}</p>
+                    <a 
+                      href={res.url} 
+                      download
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-emerald-600 hover:text-emerald-700 transition-colors"
+                    >
+                      <Download className="w-4 h-4" /> Download Resource
+                    </a>
+                  </div>
+                </motion.div>
+              ))}
+              {resources.length === 0 && (
+                <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-dashed border-slate-200">
+                  <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FileDown className="text-slate-300 w-8 h-8" />
+                  </div>
+                  <p className="text-slate-500">No reports or resources available for download yet.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Footer CTA */}
+      <footer className="bg-slate-900 py-20 mt-20">
+        <div className="max-w-3xl mx-auto px-4 text-center">
+          <h2 className="text-3xl font-bold text-white mb-6 tracking-tight">Support our mission</h2>
+          <p className="text-slate-400 text-lg mb-10 leading-relaxed">
+            Your support helps us continue our work in {org.legal_name}. 
+            Join us in making a difference.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <button 
+              className="w-full sm:w-auto px-8 py-4 rounded-xl font-bold uppercase tracking-widest text-sm transition-all hover:scale-105 active:scale-95"
+              style={{ backgroundColor: brandColor, color: '#fff' }}
+            >
+              Donate Now
+            </button>
+            <Link 
+              href="/registry"
+              className="w-full sm:w-auto px-8 py-4 rounded-xl font-bold uppercase tracking-widest text-sm text-white border border-white/20 hover:bg-white/10 transition-all"
+            >
+              Back to Registry
+            </Link>
           </div>
         </div>
-      </section>
+      </footer>
     </main>
   );
 }

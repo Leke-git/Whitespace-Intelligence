@@ -3,6 +3,7 @@
 import { useCallback, useRef, useEffect } from 'react';
 import { MapContainer, GeoJSON, ZoomControl, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import type { Feature, GeoJsonObject } from 'geojson';
 
 export type MapMode = 'gap' | 'density' | 'trust';
@@ -200,8 +201,8 @@ export default function LeafletMap({ lgas, onSelectLga, onHoverLga, mapMode = 'g
     <MapContainer
       center={[9.082, 8.6753]}
       zoom={6}
-      style={{ height: '100%', width: '100%', background: '#ffffff' }}
-      className="white-map"
+      style={{ height: '100%', width: '100%', background: '#f8fafc' }}
+      className="subtle-map"
       zoomControl={false}
       attributionControl={false}
     >

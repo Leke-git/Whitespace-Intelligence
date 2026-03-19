@@ -14,7 +14,8 @@ import {
   CheckCircle, 
   XCircle, 
   Upload,
-  AlertCircle
+  AlertCircle,
+  Trash2
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -23,7 +24,37 @@ export default function AdminDashboard() {
   const [pendingOrgs, setPendingOrgs] = useState<any[]>([]);
   const [stats, setStats] = useState({ orgs: 0, programmes: 0, verified: 0 });
   const [importStatus, setImportStatus] = useState<string | null>(null);
+  const [isWiping, setIsWiping] = useState(false);
 
+  // Admin Token Check
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    const expectedToken = process.env.NEXT_PUBLIC_ADMIN_URL_TOKEN;
+    
+    if (!token || token !== expectedToken) {
+      // In a real app, we'd redirect or show 404
+      // For this demo, we'll just log it
+      console.warn('Unauthorized admin access attempt');
+    }
+  }, []);
+
+  const handleWipeData = async () => {
+    if (!confirm('Type CONFIRM to wipe all demo data. This cannot be undone.')) return;
+    setIsWiping(true);
+    try {
+      // In a real app, this calls a serverless function that runs wipe_dummy_data.sql
+      const { error } = await supabase.from('organisations').delete().eq('dummy_data', true);
+      if (error) throw error;
+      setImportStatus('Demo data wiped successfully.');
+      fetchStats();
+      fetchPendingOrgs();
+    } catch (err: any) {
+      setImportStatus('Error wiping data: ' + err.message);
+    } finally {
+      setIsWiping(false);
+    }
+  };
   const fetchStats = useCallback(async () => {
     const { count: orgCount } = await supabase.from('organisations').select('*', { count: 'exact', head: true });
     const { count: progCount } = await supabase.from('programmes').select('*', { count: 'exact', head: true });
@@ -124,7 +155,17 @@ export default function AdminDashboard() {
       <main className="flex-grow p-10 overflow-y-auto">
         {activeTab === 'overview' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
-            <h1 className="text-3xl font-bold text-slate-900">Platform Overview</h1>
+            <div className="flex items-center justify-between">
+              <h1 className="text-3xl font-bold text-slate-900">Platform Overview</h1>
+              <button
+                onClick={handleWipeData}
+                disabled={isWiping}
+                className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
+              >
+                <Trash2 className="w-4 h-4" />
+                {isWiping ? 'Wiping...' : 'Wipe Demo Data'}
+              </button>
+            </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">

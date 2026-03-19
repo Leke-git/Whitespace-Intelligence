@@ -1,10 +1,10 @@
 {
-  "name": "Whitespace Coordination Intelligence",
+  "name": "WHITESPACE — NGO Coordination & Gap Intelligence",
   "nodes": [
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "whitespace-coordination",
+        "path": "whitespace-enquiry",
         "options": {}
       },
       "id": "webhook-trigger",
@@ -16,10 +16,43 @@
         300
       ],
       "webhookId": "whitespace-webhook"
+    },
+    {
+      "parameters": {
+        "values": {
+          "number": [
+            {
+              "name": "webhookSecret",
+              "value": "={{ $('Webhook').item.json.body.webhookSecret }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "secrets",
+      "name": "Secrets",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        300,
+        300
+      ]
     }
   ],
-  "connections": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Secrets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
   "active": false,
   "settings": {},
-  "id": "placeholder-id"
+  "versionId": "1.0.0"
 }
