@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
+import { BrandLoader } from './BrandLoader';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -43,9 +44,7 @@ export default function Navbar() {
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center flex-shrink-0">
             <Link href="/" className="flex items-center gap-2 mr-8">
-              <div className="w-8 h-8 bg-emerald-600 rounded flex items-center justify-center flex-shrink-0">
-                <div className="w-2 h-2 bg-white rounded-sm" />
-              </div>
+              <BrandLoader size="sm" variant="dots" isStatic={true} />
               <span className="text-xl font-bold tracking-tight text-slate-900 font-display whitespace-nowrap">
                 WHITESPACE
               </span>

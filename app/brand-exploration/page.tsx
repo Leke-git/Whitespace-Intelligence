@@ -18,55 +18,59 @@ export default function BrandExplorationPage() {
           </p>
         </header>
 
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-20">
-          {/* Logo Concept */}
-          <div className="bg-white p-12 rounded-3xl border border-slate-200 shadow-sm">
-            <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-8">Logo Concept: The Inset Box</h2>
-            <div className="flex items-center gap-12">
-              <div className="space-y-4">
-                <div className="w-16 h-16 bg-emerald-600 rounded-xl flex items-center justify-center">
-                  <div className="w-4 h-4 bg-white rounded-sm" />
-                </div>
-                <p className="text-xs font-medium text-slate-500 text-center">Static Logo</p>
-              </div>
-              <div className="max-w-xs">
-                <p className="text-slate-700 leading-relaxed">
-                  Replacing the shield with a minimal square represents the &quot;Whitespace&quot; — the gaps we identify and fill. The inset box symbolizes the coordination and focus we bring to these gaps.
-                </p>
-              </div>
-            </div>
+        <section className="space-y-12 mb-20">
+          <div className="border-b border-slate-200 pb-4">
+            <h2 className="text-2xl font-bold text-slate-900">Concept Exploration: The Network &apos;W&apos;</h2>
+            <p className="text-slate-500">Exploring different dot densities, sizes, and arrangements for the network concept.</p>
           </div>
 
-          {/* Loader Concept */}
-          <div className="bg-white p-12 rounded-3xl border border-slate-200 shadow-sm">
-            <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-8">Loader Concept: Kinetic Coordination</h2>
-            <div className="flex items-center gap-12">
-              <div className="space-y-4">
-                <BrandLoader size="lg" />
-                <p className="text-xs font-medium text-slate-500 text-center">Active Loader</p>
+          <div className="grid grid-cols-1 gap-12">
+            {/* Final Selection: Minimalist Path */}
+            <div className="space-y-6">
+              <div className="bg-white p-12 rounded-3xl border-2 border-emerald-600 shadow-lg flex flex-col items-center justify-center min-h-[400px] relative overflow-hidden">
+                <div className="absolute top-4 right-4 bg-emerald-600 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest">Selected Brand Identity</div>
+                <div className="flex items-center gap-6">
+                  <BrandLoader size="lg" variant="dots" subVariant="minimal" isStatic={true} />
+                  <span className="text-4xl font-bold tracking-tight text-slate-900 font-display uppercase">WHITESPACE</span>
+                </div>
+                <div className="mt-12 text-[12px] font-bold text-slate-400 uppercase tracking-[0.2em]">Minimalist Network Path</div>
               </div>
-              <div className="max-w-xs">
-                <p className="text-slate-700 leading-relaxed">
-                  The moving inner box represents the dynamic nature of coordination — constantly scanning, identifying, and aligning resources across the landscape.
-                </p>
+              <p className="text-lg text-slate-600 text-center max-w-2xl mx-auto">
+                Our finalized identity. A simplified, abstract path that removes all visual noise to focus on the essential &quot;W&quot; shape, representing the seamless coordination of Nigeria&apos;s actors.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="grid grid-cols-1 gap-8 mb-20">
+          <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col items-center text-center">
+            <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-6">Identity Preview</h2>
+            <div className="flex flex-wrap justify-center gap-12 mb-6">
+              <div className="flex flex-col items-center gap-3">
+                <BrandLoader size="lg" variant="dots" subVariant="minimal" isStatic={true} />
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Icon Only (Static)</span>
+              </div>
+              <div className="flex flex-col items-center gap-3">
+                <BrandLoader size="lg" variant="dots" subVariant="minimal" />
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Icon Only (Animated)</span>
               </div>
             </div>
           </div>
         </section>
 
         <section className="space-y-8">
-          <h2 className="text-2xl font-bold text-slate-900">Loader Variations</h2>
+          <h2 className="text-2xl font-bold text-slate-900">Loader Variations (Selected Concept)</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
             <div className="bg-white p-8 rounded-2xl border border-slate-200 flex flex-col items-center justify-center gap-4">
-              <BrandLoader size="sm" />
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Small (Inline)</span>
+              <BrandLoader size="sm" variant="dots" />
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Small (Navbar)</span>
             </div>
             <div className="bg-white p-8 rounded-2xl border border-slate-200 flex flex-col items-center justify-center gap-4">
-              <BrandLoader size="md" />
+              <BrandLoader size="md" variant="dots" />
               <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Medium (Default)</span>
             </div>
             <div className="bg-white p-8 rounded-2xl border border-slate-200 flex flex-col items-center justify-center gap-4">
-              <BrandLoader size="lg" />
+              <BrandLoader size="lg" variant="dots" />
               <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Large (Hero)</span>
             </div>
           </div>

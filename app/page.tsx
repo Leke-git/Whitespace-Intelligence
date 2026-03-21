@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import { Search, Map as MapIcon, ShieldCheck, Zap } from 'lucide-react';
 import Link from 'next/link';
+import { BrandLoader } from '@/components/BrandLoader';
 
 import { motion } from 'motion/react';
 
@@ -133,9 +134,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-8">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-emerald-600 rounded flex items-center justify-center">
-                <ShieldCheck className="text-white w-4 h-4" />
-              </div>
+              <BrandLoader size="sm" variant="dots" isStatic={true} />
               <span className="text-lg font-bold tracking-tight text-slate-900 font-display uppercase">
                 WHITESPACE
               </span>

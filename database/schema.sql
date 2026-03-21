@@ -297,8 +297,8 @@ CREATE TABLE IF NOT EXISTS fraud_reports (
   created_at      TIMESTAMPTZ DEFAULT now()
 );
 
--- ── 9. GAP SCORES (nightly computed) ─────────────────────────
-CREATE TABLE IF NOT EXISTS lga_gap_scores (
+-- ── 9. SECTOR GAP SCORES (nightly computed) ───────────────────
+CREATE TABLE IF NOT EXISTS lga_sector_gap_scores (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   lga_id          INTEGER NOT NULL REFERENCES lga_gap_scores(id),
   sector_id       SMALLINT REFERENCES sectors(id),  -- NULL = all sectors
@@ -313,9 +313,9 @@ CREATE TABLE IF NOT EXISTS lga_gap_scores (
   UNIQUE(lga_id, sector_id, computed_at)
 );
 
-CREATE INDEX IF NOT EXISTS gap_scores_lga_idx     ON lga_gap_scores(lga_id);
-CREATE INDEX IF NOT EXISTS gap_scores_sector_idx  ON lga_gap_scores(sector_id);
-CREATE INDEX IF NOT EXISTS gap_scores_computed_idx ON lga_gap_scores(computed_at DESC);
+CREATE INDEX IF NOT EXISTS gap_scores_lga_idx     ON lga_sector_gap_scores(lga_id);
+CREATE INDEX IF NOT EXISTS gap_scores_sector_idx  ON lga_sector_gap_scores(sector_id);
+CREATE INDEX IF NOT EXISTS gap_scores_computed_idx ON lga_sector_gap_scores(computed_at DESC);
 
 -- ── 10. GRANT OPPORTUNITIES ───────────────────────────────────
 CREATE TABLE IF NOT EXISTS grant_opportunities (

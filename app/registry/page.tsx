@@ -214,19 +214,51 @@ export default function RegistryPage() {
                 </button>
                 
                 <div className="flex items-center gap-2">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`w-10 h-10 rounded-lg font-bold text-sm transition-all ${
-                        currentPage === page
-                          ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200'
-                          : 'text-slate-600 hover:bg-slate-100'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
+                  {/* Logic for compact pagination */}
+                  {(() => {
+                    const pages = [];
+                    const maxVisible = 5;
+                    
+                    if (totalPages <= maxVisible) {
+                      for (let i = 1; i <= totalPages; i++) pages.push(i);
+                    } else {
+                      pages.push(1);
+                      
+                      if (currentPage > 3) {
+                        pages.push('...');
+                      }
+                      
+                      const start = Math.max(2, currentPage - 1);
+                      const end = Math.min(totalPages - 1, currentPage + 1);
+                      
+                      for (let i = start; i <= end; i++) {
+                        if (i !== 1 && i !== totalPages) pages.push(i);
+                      }
+                      
+                      if (currentPage < totalPages - 2) {
+                        pages.push('...');
+                      }
+                      
+                      pages.push(totalPages);
+                    }
+                    
+                    return pages.map((page, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => typeof page === 'number' ? setCurrentPage(page) : null}
+                        disabled={typeof page !== 'number'}
+                        className={`w-10 h-10 rounded-lg font-bold text-sm transition-all ${
+                          currentPage === page
+                            ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200'
+                            : typeof page === 'number'
+                              ? 'text-slate-600 hover:bg-slate-100'
+                              : 'text-slate-400 cursor-default'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    ));
+                  })()}
                 </div>
 
                 <button

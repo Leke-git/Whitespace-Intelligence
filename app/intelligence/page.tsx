@@ -6,8 +6,25 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { supabase } from '@/lib/supabase';
-import { Zap, AlertTriangle, TrendingUp, MapPin, Search, Filter, Info, ArrowRight } from 'lucide-react';
-import { motion } from 'motion/react';
+import { Zap, AlertTriangle, TrendingUp, MapPin, Search, Filter, Info, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { motion, useSpring, useTransform, animate } from 'motion/react';
+
+const ITEMS_PER_PAGE = 6;
+
+function AnimatedCounter({ value, duration = 2, suffix = "" }: { value: number, duration?: number, suffix?: string }) {
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    const controls = animate(0, value, {
+      duration,
+      onUpdate: (latest) => setDisplayValue(Math.floor(latest)),
+      ease: "easeOut"
+    });
+    return () => controls.stop();
+  }, [value, duration]);
+
+  return <span>{displayValue}{suffix}</span>;
+}
 
 interface GapAnalysis {
   id: number;
@@ -25,6 +42,7 @@ export default function IntelligencePage() {
   const [analyses, setAnalyses] = useState<GapAnalysis[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
 
   const fetchAnalyses = useCallback(async () => {
     setLoading(true);
@@ -106,6 +124,12 @@ export default function IntelligencePage() {
     return true;
   });
 
+  const totalPages = Math.ceil(filteredAnalyses.length / ITEMS_PER_PAGE);
+  const paginatedAnalyses = filteredAnalyses.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
   return (
     <main className="min-h-screen bg-slate-50">
       <Navbar />
@@ -153,7 +177,9 @@ export default function IntelligencePage() {
               </div>
               <span className="text-xs font-bold text-red-600 uppercase tracking-wider">Priority</span>
             </div>
-            <div className="text-4xl font-bold text-slate-900 mb-1">12</div>
+            <div className="text-4xl font-bold text-slate-900 mb-1">
+              <AnimatedCounter value={12} />
+            </div>
             <div className="text-slate-500 font-medium">Critical Gaps Identified</div>
           </div>
           <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
@@ -163,7 +189,9 @@ export default function IntelligencePage() {
               </div>
               <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Growth</span>
             </div>
-            <div className="text-4xl font-bold text-slate-900 mb-1">85%</div>
+            <div className="text-4xl font-bold text-slate-900 mb-1">
+              <AnimatedCounter value={85} suffix="%" />
+            </div>
             <div className="text-slate-500 font-medium">Coordination Accuracy</div>
           </div>
           <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
@@ -173,7 +201,9 @@ export default function IntelligencePage() {
               </div>
               <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">Coverage</span>
             </div>
-            <div className="text-4xl font-bold text-slate-900 mb-1">774</div>
+            <div className="text-4xl font-bold text-slate-900 mb-1">
+              <AnimatedCounter value={774} />
+            </div>
             <div className="text-slate-500 font-medium">LGAs Monitored</div>
           </div>
         </div>
@@ -184,7 +214,10 @@ export default function IntelligencePage() {
             {['all', 'critical', 'low-risk'].map((f) => (
               <button
                 key={f}
-                onClick={() => setFilter(f)}
+                onClick={() => {
+                  setFilter(f);
+                  setCurrentPage(1);
+                }}
                 className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
                   filter === f ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
                 }`}
@@ -201,7 +234,7 @@ export default function IntelligencePage() {
 
         {/* Analysis Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {filteredAnalyses.map((analysis, i) => (
+          {paginatedAnalyses.map((analysis, i) => (
             <motion.div
               key={analysis.id}
               initial={{ opacity: 0, y: 20 }}
@@ -272,6 +305,65 @@ export default function IntelligencePage() {
             </motion.div>
           ))}
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="mt-16 flex items-center justify-center gap-4">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+            
+            <div className="flex items-center gap-2">
+              {(() => {
+                const pages = [];
+                const maxVisible = 5;
+                
+                if (totalPages <= maxVisible) {
+                  for (let i = 1; i <= totalPages; i++) pages.push(i);
+                } else {
+                  pages.push(1);
+                  if (currentPage > 3) pages.push('...');
+                  const start = Math.max(2, currentPage - 1);
+                  const end = Math.min(totalPages - 1, currentPage + 1);
+                  for (let i = start; i <= end; i++) {
+                    if (i !== 1 && i !== totalPages) pages.push(i);
+                  }
+                  if (currentPage < totalPages - 2) pages.push('...');
+                  pages.push(totalPages);
+                }
+                
+                return pages.map((page, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => typeof page === 'number' ? setCurrentPage(page) : null}
+                    disabled={typeof page !== 'number'}
+                    className={`w-10 h-10 rounded-lg font-bold text-sm transition-all ${
+                      currentPage === page
+                        ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200'
+                        : typeof page === 'number'
+                          ? 'text-slate-600 hover:bg-slate-100'
+                          : 'text-slate-400 cursor-default'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ));
+              })()}
+            </div>
+
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </button>
+          </div>
+        )}
       </div>
     </main>
   );

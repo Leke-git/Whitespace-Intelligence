@@ -18,6 +18,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { BrandLoader } from '@/components/BrandLoader';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -114,9 +115,7 @@ export default function AdminDashboard() {
       <aside className="w-64 bg-slate-900 text-white flex flex-col">
         <div className="p-6 border-b border-slate-800">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-emerald-500 rounded flex items-center justify-center">
-              <FileCheck className="text-white w-4 h-4" />
-            </div>
+            <BrandLoader size="sm" variant="dots" isStatic={true} />
             <span className="text-lg font-bold tracking-tight font-display uppercase">
               WHITESPACE ADMIN
             </span>

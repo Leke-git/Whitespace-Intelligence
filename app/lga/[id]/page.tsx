@@ -51,11 +51,14 @@ export default function LGADetailPage() {
     const fetchData = async () => {
       setLoading(true);
       try {
+        const queryId = parseInt(id, 10);
+        const finalId = isNaN(queryId) ? id : queryId;
+
         // Fetch LGA details
         const { data: lgaData, error: lgaError } = await supabase
           .from('lga_gap_scores')
           .select('*')
-          .eq('id', id)
+          .eq('id', finalId)
           .single();
 
         if (lgaError) throw lgaError;
@@ -80,7 +83,7 @@ export default function LGADetailPage() {
               )
             )
           `)
-          .eq('lga_id', id);
+          .eq('lga_id', finalId);
 
         if (progError) throw progError;
         setProgrammes(progData || []);

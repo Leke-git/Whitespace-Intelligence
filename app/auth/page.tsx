@@ -6,7 +6,8 @@ import { useState, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Navbar from '@/components/Navbar';
-import { Shield, Mail, Lock, Building, FileText, ArrowRight, AlertCircle } from 'lucide-react';
+import { BrandLoader } from '@/components/BrandLoader';
+import { Mail, Lock, Building, FileText, ArrowRight, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 function AuthForm() {
@@ -202,9 +203,7 @@ export default function AuthPage() {
             animate={{ opacity: 1, x: 0 }}
             className="space-y-8"
           >
-            <div className="w-16 h-16 bg-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-600/20">
-              <Shield className="text-white w-8 h-8" />
-            </div>
+            <BrandLoader size="lg" variant="dots" isStatic={true} className="!justify-start" />
             <h1 className="text-5xl font-bold text-slate-900 leading-tight">
               Join Nigeria&apos;s <br />
               <span className="text-emerald-600">Coordination Network.</span>
