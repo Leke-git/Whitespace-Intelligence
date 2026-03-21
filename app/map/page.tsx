@@ -172,15 +172,31 @@ export default function MapPage() {
   );
 
   const filteredLgas = useMemo(() => {
+    const SECTOR_NAMES: Record<number, string> = {
+      1: 'Health', 2: 'Education', 3: 'WASH', 4: 'Nutrition', 5: 'Protection'
+    };
+
     return lgas.filter(lga => {
       const matchSearch =
         lga.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         lga.state.toLowerCase().includes(searchTerm.toLowerCase());
       const matchState  = !selectedState || lga.state === selectedState;
-      const matchSector = true;
-      return matchSearch && matchState && matchSector;
+      
+      // If all sectors are selected, don't filter by sector
+      if (selectedSectors.length === SECTORS.length) return matchSearch && matchState;
+
+      // Check primary needs
+      const primaryNeeds = lga.primary_needs || [];
+      const hasNeedMatch = selectedSectors.some(s => primaryNeeds.includes(s));
+
+      // Check active programmes
+      const lgaProgrammes = programmes.filter(p => p.lga_id === lga.id);
+      const activeSectors = lgaProgrammes.map(p => SECTOR_NAMES[p.programmes?.sector_id]).filter(Boolean);
+      const hasActiveMatch = selectedSectors.some(s => activeSectors.includes(s));
+
+      return matchSearch && matchState && (hasNeedMatch || hasActiveMatch);
     });
-  }, [lgas, searchTerm, selectedState]);
+  }, [lgas, searchTerm, selectedState, selectedSectors, programmes]);
 
   const criticalCount = useMemo(
     () => lgas.filter(l => (l.gap_score ?? 0) > 0.8).length,
@@ -218,7 +234,7 @@ export default function MapPage() {
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                     Visualisation Mode
                   </label>
-                  <div className="grid grid-cols-3 gap-1.5 p-1 bg-white/40 border border-slate-100 rounded-xl">
+                  <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 rounded-2xl">
                     {(Object.keys(MODE_META) as MapMode[]).map(mode => {
                       const { label, Icon } = MODE_META[mode];
                       const active = mapMode === mode;
@@ -226,7 +242,7 @@ export default function MapPage() {
                         <button
                           key={mode}
                           onClick={() => setMapMode(mode)}
-                          className={`flex flex-col items-center gap-1 py-2.5 px-1 rounded-lg text-[10px] font-bold transition-all ${
+                          className={`flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl text-[10px] font-bold transition-all ${
                             active
                               ? 'bg-white text-emerald-700 shadow-sm border border-emerald-100'
                               : 'text-slate-500 hover:text-slate-700'
@@ -242,13 +258,13 @@ export default function MapPage() {
 
                 {/* Search */}
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     type="text"
                     placeholder="Search LGA or State..."
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
-                    className="w-full max-w-full pl-10 pr-4 py-2 bg-white/40 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                    className="w-full max-w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
                   />
                 </div>
 
@@ -258,7 +274,7 @@ export default function MapPage() {
                   <select
                     value={selectedState}
                     onChange={e => setSelectedState(e.target.value)}
-                    className="w-full max-w-full p-2 bg-white/40 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full max-w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-600"
                   >
                     <option value="">All States</option>
                     {states.map(s => <option key={s} value={s}>{s}</option>)}
@@ -272,9 +288,9 @@ export default function MapPage() {
                     {SECTORS.map(sector => (
                       <label
                         key={sector}
-                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[10px] font-medium cursor-pointer transition-all ${
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[10px] font-bold cursor-pointer transition-all ${
                           selectedSectors.includes(sector)
-                            ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                            ? 'bg-emerald-600 border-emerald-600 text-white shadow-md shadow-emerald-100'
                             : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
                         }`}
                       >
@@ -397,22 +413,35 @@ export default function MapPage() {
           </div>
 
           {/* ── Floating controls ────────────────────────────────────────── */}
-          <div className={`absolute right-6 flex flex-col gap-2 z-[1000] ${
-            isMobile ? 'top-1/2 -translate-y-1/2' : 'top-6'
-          }`}>
+          <motion.div 
+            animate={isMobile ? {
+              left: isSidebarOpen ? 'calc(100% - 52px)' : 24,
+              right: 'auto',
+              top: isSidebarOpen ? 16 + 52 : 24 + 52,
+            } : {
+              left: 'auto',
+              right: 24,
+              top: 24
+            }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            className="absolute flex flex-col gap-2 z-[1000]"
+          >
             <button className="p-3 bg-white/80 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-all">
               <Filter className="w-5 h-5 text-slate-600" />
             </button>
             <button className="p-3 bg-white/80 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-all">
               <Info className="w-5 h-5 text-slate-600" />
             </button>
-          </div>
+          </motion.div>
 
           {/* ── LGA info card / Bottom Sheet ────────────────────────────────────────────── */}
           <AnimatePresence mode="wait">
             {activeLga && stats && (
               <motion.div
                 key={activeLga.id}
+                drag={isMobile ? "y" : false}
+                dragConstraints={isMobile ? { top: -400, bottom: 300 } : false}
+                dragElastic={0.1}
                 initial={isMobile ? { y: '100%', opacity: 0 } : { y: 10, opacity: 0 }}
                 animate={isMobile ? { 
                   y: 0, 
@@ -432,6 +461,7 @@ export default function MapPage() {
                 exit={isMobile ? { y: '100%', opacity: 0 } : { y: 10, opacity: 0 }}
                 transition={{ 
                   left: { duration: 0.3, ease: 'easeInOut' },
+                  y: { type: 'spring', damping: 25, stiffness: 200 },
                   default: { duration: 0.3, ease: [0.23, 1, 0.32, 1] } // Smoother spring-like ease
                 }}
                 className={`absolute z-[1055] ${isMobile ? 'px-4 pb-4' : ''}`}

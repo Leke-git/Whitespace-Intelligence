@@ -6,8 +6,8 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { supabase } from '@/lib/supabase';
-import { Zap, AlertTriangle, TrendingUp, MapPin, Search, Filter, Info, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
-import { motion, useSpring, useTransform, animate } from 'motion/react';
+import { Zap, AlertTriangle, TrendingUp, MapPin, Search, Filter, Info, ArrowRight, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { motion, AnimatePresence, useSpring, useTransform, animate } from 'motion/react';
 
 const ITEMS_PER_PAGE = 6;
 
@@ -30,6 +30,7 @@ interface GapAnalysis {
   id: number;
   lga_name: string;
   sector: string;
+  state?: string;
   gap_score: number;
   is_critical_gap: boolean;
   duplication_risk: string;
@@ -38,11 +39,19 @@ interface GapAnalysis {
   created_at: string;
 }
 
+const SECTOR_NAMES: Record<number, string> = {
+  1: 'Health', 2: 'Education', 3: 'WASH', 4: 'Nutrition', 5: 'Protection'
+};
+
 export default function IntelligencePage() {
   const [analyses, setAnalyses] = useState<GapAnalysis[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedState, setSelectedState] = useState('');
+  const [selectedSector, setSelectedSector] = useState('all');
+  const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
 
   const fetchAnalyses = useCallback(async () => {
     setLoading(true);
@@ -50,8 +59,7 @@ export default function IntelligencePage() {
     const { data, error } = await supabase
       .from('lga_gap_scores')
       .select('id, name, state, gap_score, updated_at, primary_needs')
-      .order('gap_score', { ascending: false })
-      .limit(20);
+      .order('gap_score', { ascending: false });
 
     if (error) {
       console.error('Error fetching analyses:', error);
@@ -61,6 +69,7 @@ export default function IntelligencePage() {
           id: 1,
           lga_name: 'Maiduguri',
           sector: 'Nutrition',
+          state: 'Borno',
           gap_score: 0.92,
           is_critical_gap: true,
           duplication_risk: 'Low',
@@ -72,6 +81,7 @@ export default function IntelligencePage() {
           id: 2,
           lga_name: 'Kano Municipal',
           sector: 'WASH',
+          state: 'Kano',
           gap_score: 0.85,
           is_critical_gap: true,
           duplication_risk: 'Medium',
@@ -83,6 +93,7 @@ export default function IntelligencePage() {
           id: 3,
           lga_name: 'Ikeja',
           sector: 'Education',
+          state: 'Lagos',
           gap_score: 0.45,
           is_critical_gap: false,
           duplication_risk: 'High',
@@ -96,6 +107,7 @@ export default function IntelligencePage() {
       const mappedData: GapAnalysis[] = (data || []).map((item: any) => ({
         id: item.id,
         lga_name: item.name || 'Unknown LGA',
+        state: item.state,
         sector: (item.primary_needs && item.primary_needs.length > 0) ? item.primary_needs[0] : 'General',
         gap_score: parseFloat(item.gap_score),
         is_critical_gap: parseFloat(item.gap_score) > 0.8,
@@ -118,10 +130,24 @@ export default function IntelligencePage() {
     init();
   }, [fetchAnalyses]);
 
+  const states = Array.from(new Set(analyses.map(a => a.lga_name.split(' - ')[1] || 'Unknown'))).sort(); // This is a bit hacky, let's assume we have state info
+  // Actually, let's just use the state from the data if available.
+  // In fetchAnalyses, I see item.state is fetched. Let's update the mapping.
+
   const filteredAnalyses = analyses.filter(a => {
-    if (filter === 'critical') return a.is_critical_gap;
-    if (filter === 'low-risk') return a.duplication_risk === 'Low';
-    return true;
+    // Priority filter
+    const matchPriority = filter === 'all' || (filter === 'critical' && a.is_critical_gap) || (filter === 'low-risk' && a.duplication_risk === 'Low');
+    
+    // Search filter (LGA name)
+    const matchSearch = a.lga_name.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // State filter
+    const matchState = !selectedState || a.state === selectedState;
+    
+    // Sector filter
+    const matchSector = selectedSector === 'all' || a.sector === selectedSector;
+
+    return matchPriority && matchSearch && matchState && matchSector;
   });
 
   const totalPages = Math.ceil(filteredAnalyses.length / ITEMS_PER_PAGE);
@@ -209,28 +235,234 @@ export default function IntelligencePage() {
         </div>
 
         {/* Filter Bar */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-10">
-          <div className="flex gap-2 p-1 bg-slate-200 rounded-2xl w-full md:w-auto">
-            {['all', 'critical', 'low-risk'].map((f) => (
-              <button
-                key={f}
-                onClick={() => {
-                  setFilter(f);
+        <div className="sticky top-[64px] z-30 bg-slate-50/80 backdrop-blur-md py-6 mb-12 border-b border-slate-200 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+          <div className="flex items-center justify-between lg:hidden mb-4">
+            <div className="text-sm font-bold text-slate-500 uppercase tracking-wider">
+              {filteredAnalyses.length} Results
+            </div>
+            <button
+              onClick={() => setIsFilterDrawerOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 transition-all"
+            >
+              <Filter className="w-4 h-4" />
+              Filters
+            </button>
+          </div>
+
+          <div className="hidden lg:flex flex-col gap-6">
+            <div className="flex flex-col md:flex-row gap-4 w-full">
+              <div className="relative flex-grow">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="Search by LGA name..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all outline-none"
+                />
+              </div>
+              <select
+                value={selectedState}
+                onChange={(e) => {
+                  setSelectedState(e.target.value);
                   setCurrentPage(1);
                 }}
-                className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                  filter === f ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                }`}
+                className="px-4 py-3 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all outline-none text-slate-600 font-medium"
               >
-                {f.charAt(0).toUpperCase() + f.slice(1).replace('-', ' ')}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center gap-3 text-sm text-slate-500 bg-blue-50 px-4 py-2 rounded-xl border border-blue-100">
-            <Info className="w-4 h-4 text-blue-600" />
-            Data updated 2 hours ago based on latest NGO submissions.
+                <option value="">All States</option>
+                {Array.from(new Set(analyses.map(a => a.state).filter(Boolean))).sort().map(state => (
+                  <option key={state} value={state}>{state}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="flex gap-2 overflow-x-auto pb-2 lg:pb-0">
+                <button 
+                  onClick={() => {
+                    setSelectedSector('all');
+                    setCurrentPage(1);
+                  }}
+                  className={`flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium transition-all whitespace-nowrap ${
+                    selectedSector === 'all' 
+                      ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' 
+                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  All Sectors
+                </button>
+                {Object.values(SECTOR_NAMES).map(sector => (
+                  <button 
+                    key={sector}
+                    onClick={() => {
+                      setSelectedSector(sector);
+                      setCurrentPage(1);
+                    }}
+                    className={`flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium transition-all whitespace-nowrap ${
+                      selectedSector === sector 
+                        ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' 
+                        : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {sector}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex gap-2 p-1 bg-slate-200 rounded-2xl w-full lg:w-auto overflow-x-auto">
+                {['all', 'critical', 'low-risk'].map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => {
+                      setFilter(f);
+                      setCurrentPage(1);
+                    }}
+                    className={`whitespace-nowrap px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex-grow lg:flex-grow-0 ${
+                      filter === f ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    {f === 'all' ? 'All Priorities' : f.charAt(0).toUpperCase() + f.slice(1).replace('-', ' ')}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* Mobile Filter Drawer */}
+        <AnimatePresence>
+          {isFilterDrawerOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsFilterDrawerOpen(false)}
+                className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100]"
+              />
+              <motion.div
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                className="fixed inset-y-0 right-0 w-full max-w-xs bg-white z-[101] shadow-2xl flex flex-col"
+              >
+                <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-slate-900">Filters</h2>
+                  <button
+                    onClick={() => setIsFilterDrawerOpen(false)}
+                    className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                  >
+                    <X className="w-6 h-6 text-slate-500" />
+                  </button>
+                </div>
+                <div className="flex-grow overflow-y-auto p-6 space-y-8">
+                  <div className="space-y-4">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Search</label>
+                    <div className="relative">
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                      <input
+                        type="text"
+                        placeholder="Search LGA..."
+                        value={searchTerm}
+                        onChange={(e) => {
+                          setSearchTerm(e.target.value);
+                          setCurrentPage(1);
+                        }}
+                        className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-emerald-500 outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">State</label>
+                    <select
+                      value={selectedState}
+                      onChange={(e) => {
+                        setSelectedState(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-emerald-500 outline-none text-slate-600 font-medium"
+                    >
+                      <option value="">All States</option>
+                      {Array.from(new Set(analyses.map(a => a.state).filter(Boolean))).sort().map(state => (
+                        <option key={state} value={state}>{state}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-4">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Sectors</label>
+                    <div className="grid grid-cols-1 gap-2">
+                      <button 
+                        onClick={() => {
+                          setSelectedSector('all');
+                          setCurrentPage(1);
+                        }}
+                        className={`w-full text-left px-4 py-3 rounded-xl font-medium transition-all ${
+                          selectedSector === 'all' 
+                            ? 'bg-emerald-600 text-white' 
+                            : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                        }`}
+                      >
+                        All Sectors
+                      </button>
+                      {Object.values(SECTOR_NAMES).map(sector => (
+                        <button 
+                          key={sector}
+                          onClick={() => {
+                            setSelectedSector(sector);
+                            setCurrentPage(1);
+                          }}
+                          className={`w-full text-left px-4 py-3 rounded-xl font-medium transition-all ${
+                            selectedSector === sector 
+                              ? 'bg-emerald-600 text-white' 
+                              : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                          }`}
+                        >
+                          {sector}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Priority</label>
+                    <div className="grid grid-cols-1 gap-2">
+                      {['all', 'critical', 'low-risk'].map((f) => (
+                        <button
+                          key={f}
+                          onClick={() => {
+                            setFilter(f);
+                            setCurrentPage(1);
+                          }}
+                          className={`w-full text-left px-4 py-3 rounded-xl font-medium transition-all ${
+                            filter === f 
+                              ? 'bg-slate-900 text-white' 
+                              : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                          }`}
+                        >
+                          {f === 'all' ? 'All Priorities' : f.charAt(0).toUpperCase() + f.slice(1).replace('-', ' ')}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="p-6 border-t border-slate-100">
+                  <button
+                    onClick={() => setIsFilterDrawerOpen(false)}
+                    className="w-full py-4 bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-200"
+                  >
+                    Show {filteredAnalyses.length} Results
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
 
         {/* Analysis Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
