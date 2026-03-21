@@ -209,7 +209,7 @@ export default function LeafletMap({ lgas, onSelectLga, onHoverLga, mapMode = 'g
       zoomControl={false}
       attributionControl={false}
     >
-      {!isMobile && <ZoomControl position="bottomright" />}
+      <ZoomControl position="bottomright" />
       {geoJson && (
         <GeoJsonLayer
           geoJson={geoJson}

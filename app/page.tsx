@@ -81,7 +81,7 @@ export default function Home() {
               <motion.div 
                 key={feature.title} 
                 variants={itemVariants}
-                className="group p-8 rounded-3xl hover:bg-slate-50 transition-all duration-500 border border-transparent hover:border-slate-100"
+                className="group p-8 rounded-3xl bg-slate-50 border border-slate-200/60 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-500"
               >
                 <div className={`w-14 h-14 ${feature.bg} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500`}>
                   <feature.icon className={`w-7 h-7 ${feature.color}`} />
