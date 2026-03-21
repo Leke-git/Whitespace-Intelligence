@@ -12,10 +12,12 @@ import {
   ArrowUpRight, Building2, Globe
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import Image from 'next/image';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
   ResponsiveContainer, Cell, PieChart, Pie
 } from 'recharts';
+import { BrandLoader } from '@/components/BrandLoader';
 
 const SECTOR_ICONS: Record<string, any> = {
   'Health': HeartPulse,
@@ -135,11 +137,9 @@ export default function LGADetailPage() {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col">
         <Navbar />
-        <div className="flex-grow flex items-center justify-center">
-          <div className="text-center">
-            <Activity className="w-12 h-12 text-emerald-600 animate-pulse mx-auto mb-4" />
-            <p className="text-slate-500 font-medium">Analysing LGA Data...</p>
-          </div>
+        <div className="flex-grow flex flex-col items-center justify-center">
+          <BrandLoader size="lg" />
+          <p className="mt-4 text-slate-500 font-medium animate-pulse">Analysing LGA Data...</p>
         </div>
       </div>
     );
@@ -314,7 +314,14 @@ export default function LGADetailPage() {
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center overflow-hidden border border-slate-200">
                                 {org?.logo_url ? (
-                                  <img src={org.logo_url} alt={org.legal_name} className="w-full h-full object-cover" />
+                                  <Image 
+                                    src={org.logo_url} 
+                                    alt={org.legal_name || 'Organization Logo'} 
+                                    width={40} 
+                                    height={40} 
+                                    className="w-full h-full object-cover" 
+                                    referrerPolicy="no-referrer"
+                                  />
                                 ) : (
                                   <Building2 className="w-5 h-5 text-slate-400" />
                                 )}

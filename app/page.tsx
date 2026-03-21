@@ -1,9 +1,13 @@
+'use client';
+
 export const dynamic = 'force-dynamic';
 
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import { Search, Map as MapIcon, ShieldCheck, Zap } from 'lucide-react';
 import Link from 'next/link';
+
+import { motion } from 'motion/react';
 
 export default function Home() {
   const features = [
@@ -30,6 +34,21 @@ export default function Home() {
     }
   ];
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.2
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 }
+  };
+
   return (
     <main className="flex-grow">
       <Navbar />
@@ -38,33 +57,53 @@ export default function Home() {
       {/* Features Section */}
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
             <h2 className="text-3xl font-bold text-slate-900 mb-4">Institutional Coordination Tools</h2>
             <p className="text-lg text-slate-600 max-w-2xl mx-auto">
               Whitespace provides the infrastructure for civil society to work together effectively.
             </p>
-          </div>
+          </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+          <motion.div 
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true }}
+            className="grid grid-cols-1 md:grid-cols-3 gap-12"
+          >
             {features.map((feature) => (
-              <div key={feature.title} className="group">
-                <div className={`w-14 h-14 ${feature.bg} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
+              <motion.div 
+                key={feature.title} 
+                variants={itemVariants}
+                className="group p-8 rounded-3xl hover:bg-slate-50 transition-all duration-500 border border-transparent hover:border-slate-100"
+              >
+                <div className={`w-14 h-14 ${feature.bg} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500`}>
                   <feature.icon className={`w-7 h-7 ${feature.color}`} />
                 </div>
                 <h3 className="text-xl font-bold text-slate-900 mb-3">{feature.title}</h3>
                 <p className="text-slate-600 leading-relaxed">
                   {feature.description}
                 </p>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* CTA Section */}
       <section className="py-20 bg-slate-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-emerald-600 rounded-3xl p-12 md:p-20 flex flex-col md:flex-row items-center justify-between gap-10">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            className="bg-emerald-600 rounded-3xl p-12 md:p-20 flex flex-col md:flex-row items-center justify-between gap-10 shadow-2xl shadow-emerald-500/20"
+          >
             <div className="max-w-xl">
               <h2 className="text-4xl font-bold mb-6">Ready to coordinate?</h2>
               <p className="text-emerald-50 text-xl opacity-90">
@@ -74,18 +113,18 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
               <Link
                 href="/auth?mode=register"
-                className="bg-white text-emerald-600 px-8 py-4 rounded-xl font-bold text-lg hover:bg-emerald-50 transition-all text-center"
+                className="bg-white text-emerald-600 px-8 py-4 rounded-xl font-bold text-lg hover:bg-emerald-50 hover:scale-105 active:scale-95 transition-all text-center"
               >
                 Register NGO
               </Link>
               <Link
                 href="/map"
-                className="bg-emerald-700 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-emerald-800 transition-all text-center"
+                className="bg-emerald-700 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-emerald-800 hover:scale-105 active:scale-95 transition-all text-center"
               >
                 View Map
               </Link>
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 

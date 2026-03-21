@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
+import { BrandLoader } from '@/components/BrandLoader';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -175,8 +176,9 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
+        <BrandLoader size="lg" />
+        <p className="mt-4 text-slate-500 font-medium animate-pulse">Loading dashboard...</p>
       </div>
     );
   }

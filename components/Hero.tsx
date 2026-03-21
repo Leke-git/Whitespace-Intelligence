@@ -1,10 +1,50 @@
 'use client';
 
-import { motion } from 'motion/react';
+import { motion, useInView, useMotionValue, useTransform, animate } from 'motion/react';
 import { ArrowRight, ShieldCheck, MapPin, BarChart3, Users } from 'lucide-react';
 import Link from 'next/link';
+import { useEffect, useRef } from 'react';
+
+function Counter({ value, duration = 2, suffix = "" }: { value: number; duration?: number; suffix?: string }) {
+  const count = useMotionValue(0);
+  const rounded = useTransform(count, (latest) => {
+    const val = Math.round(latest);
+    if (val >= 1000) {
+      return val.toLocaleString() + suffix;
+    }
+    return val + suffix;
+  });
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true });
+
+  useEffect(() => {
+    if (inView) {
+      const controls = animate(count, value, { duration });
+      return controls.stop;
+    }
+  }, [inView, count, value, duration]);
+
+  return <motion.span ref={ref}>{rounded}</motion.span>;
+}
 
 export default function Hero() {
+  const statsVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        staggerChildren: 0.2,
+        delayChildren: 0.5
+      }
+    }
+  };
+
+  const statItemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 }
+  };
+
   return (
     <section className="relative py-20 overflow-hidden bg-slate-50">
       {/* Background Pattern */}
@@ -56,32 +96,38 @@ export default function Hero() {
 
           {/* Stats */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.8 }}
+            variants={statsVariants}
+            initial="hidden"
+            animate="show"
             className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-20"
           >
-            <div className="p-6 bg-white rounded-2xl border border-slate-100 shadow-sm">
+            <motion.div variants={statItemVariants} className="p-6 bg-white rounded-2xl border border-slate-100 shadow-sm">
               <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center mb-4 mx-auto">
                 <MapPin className="text-emerald-600 w-6 h-6" />
               </div>
-              <div className="text-3xl font-bold text-slate-900">774</div>
+              <div className="text-3xl font-bold text-slate-900">
+                <Counter value={774} />
+              </div>
               <div className="text-slate-500 text-sm font-medium uppercase tracking-wider">LGAs Mapped</div>
-            </div>
-            <div className="p-6 bg-white rounded-2xl border border-slate-100 shadow-sm">
+            </motion.div>
+            <motion.div variants={statItemVariants} className="p-6 bg-white rounded-2xl border border-slate-100 shadow-sm">
               <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mb-4 mx-auto">
                 <Users className="text-blue-600 w-6 h-6" />
               </div>
-              <div className="text-3xl font-bold text-slate-900">1,200+</div>
+              <div className="text-3xl font-bold text-slate-900">
+                <Counter value={1200} suffix="+" />
+              </div>
               <div className="text-slate-500 text-sm font-medium uppercase tracking-wider">Verified NGOs</div>
-            </div>
-            <div className="p-6 bg-white rounded-2xl border border-slate-100 shadow-sm">
+            </motion.div>
+            <motion.div variants={statItemVariants} className="p-6 bg-white rounded-2xl border border-slate-100 shadow-sm">
               <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center mb-4 mx-auto">
                 <BarChart3 className="text-amber-600 w-6 h-6" />
               </div>
-              <div className="text-3xl font-bold text-slate-900">85%</div>
+              <div className="text-3xl font-bold text-slate-900">
+                <Counter value={85} suffix="%" />
+              </div>
               <div className="text-slate-500 text-sm font-medium uppercase tracking-wider">Coordination Efficiency</div>
-            </div>
+            </motion.div>
           </motion.div>
         </div>
       </div>

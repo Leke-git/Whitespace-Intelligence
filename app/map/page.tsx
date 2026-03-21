@@ -7,11 +7,12 @@ import NextDynamic from 'next/dynamic';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { supabase } from '@/lib/supabase';
-import {
-  AlertTriangle, Loader2, Search, Shield,
+import { 
+  AlertTriangle, Search, Shield,
   ChevronRight, X, Users, Activity, BarChart3, Layers, Info, Filter,
   ChevronLeft, Menu as MenuIcon
 } from 'lucide-react';
+import { BrandLoader } from '@/components/BrandLoader';
 import { motion, AnimatePresence } from 'motion/react';
 import type { MapMode } from '@/components/LeafletMap';
 import type { GeoJsonObject } from 'geojson';
@@ -21,11 +22,9 @@ import type { GeoJsonObject } from 'geojson';
 const LeafletMap = NextDynamic(() => import('@/components/LeafletMap'), {
   ssr: false,
   loading: () => (
-    <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
-      <div className="text-center">
-        <Loader2 className="w-10 h-10 text-emerald-600 animate-spin mx-auto mb-4" />
-        <p className="text-slate-500 font-medium">Loading Coordination Map...</p>
-      </div>
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-100">
+      <BrandLoader size="md" />
+      <p className="mt-4 text-slate-500 font-medium">Loading Coordination Map...</p>
     </div>
   ),
 });
@@ -356,13 +355,13 @@ export default function MapPage() {
           <motion.button
             animate={{ 
               left: isSidebarOpen 
-                ? (isMobile ? 320 - 52 : 320 + 24) 
+                ? (isMobile ? 'calc(100% - 52px)' : 320 + 24) 
                 : 24,
               top: isMobile && isSidebarOpen ? 16 : 24
             }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className={`absolute z-[1060] p-2.5 bg-white/80 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-all text-slate-600 ${
+            className={`absolute z-[1060] p-2.5 bg-white/90 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-all text-slate-600 ${
               isMobile && isSidebarOpen ? 'ring-1 ring-slate-200/50' : ''
             }`}
             title={isSidebarOpen ? "Close Sidebar" : "Open Sidebar"}
@@ -376,6 +375,7 @@ export default function MapPage() {
             onHoverLga={setHoveredLga}
             mapMode={mapMode}
             geoJson={geoJson}
+            isMobile={isMobile}
           />
 
           {/* ── Legend (Desktop only, moved above zoom controls) ────────────────── */}
@@ -397,23 +397,23 @@ export default function MapPage() {
           </div>
 
           {/* ── Floating controls ────────────────────────────────────────── */}
-          {!isMobile && (
-            <div className="absolute top-6 right-6 flex flex-col gap-2 z-[1000]">
-              <button className="p-3 bg-white/80 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-all">
-                <Filter className="w-5 h-5 text-slate-600" />
-              </button>
-              <button className="p-3 bg-white/80 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-all">
-                <Info className="w-5 h-5 text-slate-600" />
-              </button>
-            </div>
-          )}
+          <div className={`absolute right-6 flex flex-col gap-2 z-[1000] ${
+            isMobile ? 'top-1/2 -translate-y-1/2' : 'top-6'
+          }`}>
+            <button className="p-3 bg-white/80 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-all">
+              <Filter className="w-5 h-5 text-slate-600" />
+            </button>
+            <button className="p-3 bg-white/80 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-all">
+              <Info className="w-5 h-5 text-slate-600" />
+            </button>
+          </div>
 
           {/* ── LGA info card / Bottom Sheet ────────────────────────────────────────────── */}
           <AnimatePresence mode="wait">
             {activeLga && stats && (
               <motion.div
                 key={activeLga.id}
-                initial={isMobile ? { y: '100%', opacity: 0 } : { x: -24, opacity: 0 }}
+                initial={isMobile ? { y: '100%', opacity: 0 } : { y: 10, opacity: 0 }}
                 animate={isMobile ? { 
                   y: 0, 
                   opacity: 1,
@@ -422,17 +422,17 @@ export default function MapPage() {
                   top: 'auto',
                   width: '100%'
                 } : { 
-                  x: 0, 
+                  y: 0, 
                   opacity: 1,
                   left: isSidebarOpen ? 320 + 24 : 24,
-                  top: 24,
+                  top: 84, // Moved down to avoid overlap with toggle button
                   bottom: 'auto',
-                  width: '20rem'
+                  width: '22rem'
                 }}
-                exit={isMobile ? { y: '100%', opacity: 0 } : { x: -24, opacity: 0 }}
+                exit={isMobile ? { y: '100%', opacity: 0 } : { y: 10, opacity: 0 }}
                 transition={{ 
                   left: { duration: 0.3, ease: 'easeInOut' },
-                  default: { duration: 0.25, ease: 'easeOut' }
+                  default: { duration: 0.3, ease: [0.23, 1, 0.32, 1] } // Smoother spring-like ease
                 }}
                 className={`absolute z-[1055] ${isMobile ? 'px-4 pb-4' : ''}`}
               >
@@ -552,15 +552,13 @@ export default function MapPage() {
               <motion.div
                 initial={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 flex items-center justify-center bg-slate-100/80 backdrop-blur-sm z-[2000]"
+                className="absolute inset-0 flex flex-col items-center justify-center bg-slate-100/80 backdrop-blur-sm z-[2000]"
               >
-                <div className="text-center">
-                  <Loader2 className="w-10 h-10 text-emerald-600 animate-spin mx-auto mb-4" />
-                  <p className="text-slate-600 font-semibold">
-                    {geoLoading ? 'Loading LGA boundaries…' : 'Fetching coordination data…'}
-                  </p>
-                  <p className="text-slate-400 text-sm mt-1">Nigeria · 774 LGAs</p>
-                </div>
+                <BrandLoader size="lg" />
+                <p className="mt-4 text-slate-600 font-semibold">
+                  {geoLoading ? 'Loading LGA boundaries…' : 'Fetching coordination data…'}
+                </p>
+                <p className="text-slate-400 text-sm mt-1">Nigeria · 774 LGAs</p>
               </motion.div>
             )}
           </AnimatePresence>

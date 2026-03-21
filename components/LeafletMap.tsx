@@ -25,6 +25,7 @@ interface Props {
   onHoverLga: (lga: LGA | null) => void;
   mapMode?: MapMode;
   geoJson?: GeoJsonObject | null;
+  isMobile?: boolean;
 }
 
 function norm(s: string): string {
@@ -186,7 +187,7 @@ function GeoJsonLayer({ geoJson, lgaMap, filteredIds, mapMode, onSelectLga, onHo
 
   return (
     <GeoJSON
-      key={`${mapMode}`}
+      key={`${mapMode}-${lgaMap.size}`}
       data={geoJson}
       style={styleFeature}
       onEachFeature={onEachFeature}
@@ -194,7 +195,7 @@ function GeoJsonLayer({ geoJson, lgaMap, filteredIds, mapMode, onSelectLga, onHo
   );
 }
 
-export default function LeafletMap({ lgas, onSelectLga, onHoverLga, mapMode = 'gap', geoJson }: Props) {
+export default function LeafletMap({ lgas, onSelectLga, onHoverLga, mapMode = 'gap', geoJson, isMobile }: Props) {
   const lgaMap = new Map<string, LGA>();
   lgas.forEach(l => lgaMap.set(norm(l.name), l));
   const filteredIds = new Set(lgas.map(l => l.id));
@@ -208,7 +209,7 @@ export default function LeafletMap({ lgas, onSelectLga, onHoverLga, mapMode = 'g
       zoomControl={false}
       attributionControl={false}
     >
-      <ZoomControl position="bottomright" />
+      {!isMobile && <ZoomControl position="bottomright" />}
       {geoJson && (
         <GeoJsonLayer
           geoJson={geoJson}
