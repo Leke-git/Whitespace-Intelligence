@@ -233,6 +233,18 @@ export default function MapPage() {
                   <h2 className="text-xl font-bold text-slate-900 uppercase tracking-tight">Map Filters</h2>
                 </div>
 
+                {/* Search Input - Moved back to Sidepanel */}
+                <div className="relative group">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                  <input
+                    type="text"
+                    placeholder="Search LGA or State..."
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                  />
+                </div>
+
                 {/* Mode switcher */}
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
@@ -387,7 +399,7 @@ export default function MapPage() {
 
         {/* ── Map pane ────────────────────────────────────────────────────────── */}
         <div className="w-full h-full relative bg-slate-100 overflow-hidden">
-          {/* Search & Sidebar Toggle Button Group */}
+          {/* Sidebar Toggle Button Group */}
           <motion.div
             animate={{ 
               left: isMobile 
@@ -399,26 +411,14 @@ export default function MapPage() {
             transition={{ duration: 0.3, ease: 'easeInOut' }}
             className="absolute z-[1060] flex items-center gap-2"
           >
-            {/* Search Input - Moved from Sidepanel */}
-            <div className="relative w-40 sm:w-64 group">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
-              <input
-                type="text"
-                placeholder="Search LGA or State..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-white/90 backdrop-blur-xl border border-slate-200 rounded-xl text-sm shadow-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-              />
-            </div>
-
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className={`p-2.5 bg-white/90 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-all text-slate-600 ${
                 isMobile && isSidebarOpen ? 'ring-1 ring-slate-200/50' : ''
               }`}
-              title={isSidebarOpen ? "Close Sidebar" : "Open Sidebar"}
+              title={isSidebarOpen ? "Collapse Sidebar" : "Open Sidebar"}
             >
-              {isSidebarOpen ? <X className="w-5 h-5" /> : <Filter className="w-5 h-5" />}
+              {isSidebarOpen ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
             </button>
           </motion.div>
 

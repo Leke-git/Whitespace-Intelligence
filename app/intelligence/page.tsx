@@ -175,18 +175,55 @@ export default function IntelligencePage() {
       
       <div className="flex-grow relative overflow-hidden">
         {/* Sidebar */}
-        <AnimatePresence initial={false}>
-          {isSidebarOpen && (
-            <motion.aside
-              initial={{ x: -320 }}
-              animate={{ x: 0 }}
-              exit={{ x: -320 }}
-              transition={{ duration: 0.3, ease: 'easeInOut' }}
-              className="absolute top-0 left-0 w-80 h-full bg-white/80 backdrop-blur-xl border-r border-slate-200 flex flex-col z-[1050] shadow-2xl overflow-hidden"
+        <AnimatePresence>
+          {isMobile && isSidebarOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsSidebarOpen(false)}
+              className="absolute inset-0 bg-slate-900/20 backdrop-blur-sm z-[1040]"
+            />
+          )}
+        </AnimatePresence>
+
+        <motion.aside
+          initial={false}
+          animate={{ x: isSidebarOpen ? 0 : -320 }}
+          transition={{ duration: 0.3, ease: 'easeInOut' }}
+          className="absolute top-0 left-0 w-80 h-full bg-white/80 backdrop-blur-xl border-r border-slate-200 flex flex-col z-[1050] shadow-2xl"
+        >
+          {/* Toggle Button - Moved inside to stick to the panel */}
+          <div className={`absolute top-6 transition-all duration-300 ${isMobile ? 'right-4' : 'left-[calc(100%+1.5rem)]'}`}>
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className={`p-2.5 bg-white/90 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-all text-slate-600 ${
+                isMobile && isSidebarOpen ? 'ring-1 ring-slate-200/50' : ''
+              }`}
+              title={isSidebarOpen ? "Collapse Sidebar" : "Open Sidebar"}
             >
-              <div className="flex-grow overflow-y-auto p-5 space-y-5">
+              {isSidebarOpen ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+            </button>
+          </div>
+
+          <div className="flex-grow overflow-y-auto p-5 space-y-5">
                 <div className={`flex items-center justify-between mb-2 ${isMobile ? 'pr-12' : ''}`}>
                   <h2 className="text-xl font-bold text-slate-900 uppercase tracking-tight">Intelligence</h2>
+                </div>
+
+                {/* Search Input - Moved back to Sidepanel */}
+                <div className="relative group">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                  <input
+                    type="text"
+                    placeholder="Search LGA or State..."
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                  />
                 </div>
 
                 {/* State & LGA */}
@@ -369,44 +406,6 @@ export default function IntelligencePage() {
         </AnimatePresence>
 
         <div className="flex-grow relative overflow-hidden bg-slate-50">
-          {/* Search & Sidebar Toggle Button Group */}
-          <motion.div
-            animate={{ 
-              left: isMobile 
-                ? 'auto' 
-                : (isSidebarOpen ? 320 + 24 : 24),
-              right: isMobile ? 24 : 'auto',
-              top: isMobile && isSidebarOpen ? 16 : 24
-            }}
-            transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="absolute z-[1060] flex items-center gap-2"
-          >
-            {/* Search Input - Moved from Sidepanel */}
-            <div className="relative w-40 sm:w-64 group">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
-              <input
-                type="text"
-                placeholder="Search LGA or State..."
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="w-full pl-10 pr-4 py-2.5 bg-white/90 backdrop-blur-xl border border-slate-200 rounded-xl text-sm shadow-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-              />
-            </div>
-
-            <button
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className={`p-2.5 bg-white/90 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-all text-slate-600 ${
-                isMobile && isSidebarOpen ? 'ring-1 ring-slate-200/50' : ''
-              }`}
-              title={isSidebarOpen ? "Close Sidebar" : "Open Sidebar"}
-            >
-              {isSidebarOpen ? <X className="w-5 h-5" /> : <Filter className="w-5 h-5" />}
-            </button>
-          </motion.div>
-
           <div className={`h-full overflow-y-auto transition-all duration-300 ${isSidebarOpen && !isMobile ? 'pl-80' : ''}`}>
             <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
               {/* Analysis Grid */}
