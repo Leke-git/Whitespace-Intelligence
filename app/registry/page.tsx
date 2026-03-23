@@ -373,7 +373,7 @@ export default function RegistryPage() {
                                 : 'Nigeria'}
                             </div>
                             {org.website && (
-                              
+                              <a
                                 href={org.website}
                                 target="_blank"
                                 rel="noopener noreferrer"
