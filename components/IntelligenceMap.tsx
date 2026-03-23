@@ -142,33 +142,45 @@ export default function IntelligenceMap({ lgas, onLgaSelect, selectedLgaId }: In
       <AnimatePresence>
         {hoveredLga && (
           <motion.div
+            key="intelligence-hover-card"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="absolute top-4 right-4 w-64 bg-[#141414] text-[#E4E3E0] p-4 border border-[#E4E3E0] shadow-xl pointer-events-none"
+            className="absolute top-4 right-4 w-64 bg-[#141414] text-[#E4E3E0] border border-[#E4E3E0] shadow-xl pointer-events-none overflow-hidden"
           >
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="font-serif italic text-lg">{hoveredLga.NAME_2}</h3>
-              <span className="text-[10px] font-mono bg-emerald-500 text-black px-1 uppercase">{hoveredLga.NAME_1}</span>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <div className="text-[10px] font-mono uppercase opacity-50">Gap Score</div>
-                <div className="text-2xl font-mono tracking-tighter">{(hoveredLga.gap_score * 100).toFixed(1)}%</div>
-              </div>
-              <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-emerald-500 transition-all duration-500" 
-                  style={{ width: `${hoveredLga.gap_score * 100}%` }} 
-                />
-              </div>
-              {hoveredLga.gap_score > 0.8 && (
-                <div className="flex items-center gap-2 text-red-400 text-xs font-mono animate-pulse">
-                  <AlertTriangle className="w-3 h-3" />
-                  CRITICAL GAP DETECTED
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={hoveredLga.NAME_2}
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
+                className="p-4"
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="font-serif italic text-lg">{hoveredLga.NAME_2}</h3>
+                  <span className="text-[10px] font-mono bg-emerald-500 text-black px-1 uppercase">{hoveredLga.NAME_1}</span>
                 </div>
-              )}
-            </div>
+                <div className="space-y-3">
+                  <div>
+                    <div className="text-[10px] font-mono uppercase opacity-50">Gap Score</div>
+                    <div className="text-2xl font-mono tracking-tighter">{(hoveredLga.gap_score * 100).toFixed(1)}%</div>
+                  </div>
+                  <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-emerald-500 transition-all duration-500" 
+                      style={{ width: `${hoveredLga.gap_score * 100}%` }} 
+                    />
+                  </div>
+                  {hoveredLga.gap_score > 0.8 && (
+                    <div className="flex items-center gap-2 text-red-400 text-xs font-mono animate-pulse">
+                      <AlertTriangle className="w-3 h-3" />
+                      CRITICAL GAP DETECTED
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>

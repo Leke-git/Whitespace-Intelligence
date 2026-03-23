@@ -187,13 +187,14 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="h-screen flex flex-col bg-slate-50 overflow-hidden">
       <Navbar />
 
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        <div className="flex flex-col md:flex-row gap-8">
-          {/* Sidebar */}
-          <aside className="w-full md:w-64 space-y-2">
+      <div className="flex-grow overflow-y-auto">
+        <div className="max-w-7xl mx-auto px-4 py-12">
+          <div className="flex flex-col md:flex-row gap-8">
+            {/* Sidebar */}
+            <aside className="w-full md:w-64 space-y-2 sticky top-0 self-start">
             <div className="p-6 bg-white rounded-2xl border border-slate-200 mb-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
@@ -506,6 +507,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-    </main>
+    </div>
+  </main>
   );
 }

@@ -155,7 +155,7 @@ export default function IntelligencePage() {
   );
 
   return (
-    <main className="min-h-screen bg-slate-50 flex flex-col">
+    <main className="h-screen bg-slate-50 flex flex-col overflow-hidden">
       <Navbar />
 
       <div className="flex-grow relative overflow-hidden">
@@ -171,24 +171,35 @@ export default function IntelligencePage() {
           )}
         </AnimatePresence>
 
+        {/* Sidebar Toggle Button */}
+        <motion.div
+          animate={{ 
+            left: isMobile 
+              ? 'auto' 
+              : (isSidebarOpen ? 320 + 24 : 24),
+            right: isMobile ? 24 : 'auto',
+            top: isMobile && isSidebarOpen ? 16 : 24
+          }}
+          transition={{ duration: 0.3, ease: 'easeInOut' }}
+          className="absolute z-[1060] flex items-center gap-2"
+        >
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className={`p-2.5 bg-white/90 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-all text-slate-600 ${
+              isMobile && isSidebarOpen ? 'ring-1 ring-slate-200/50' : ''
+            }`}
+            title={isSidebarOpen ? 'Collapse Sidebar' : 'Open Sidebar'}
+          >
+            {isSidebarOpen ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+          </button>
+        </motion.div>
+
         <motion.aside
           initial={false}
           animate={{ x: isSidebarOpen ? 0 : -320 }}
           transition={{ duration: 0.3, ease: 'easeInOut' }}
           className="absolute top-0 left-0 w-80 h-full bg-white/80 backdrop-blur-xl border-r border-slate-200 flex flex-col z-[1050] shadow-2xl"
         >
-          <div className={`absolute top-6 transition-all duration-300 ${isMobile ? 'right-4' : 'left-[calc(100%+1.5rem)]'}`}>
-            <button
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className={`p-2.5 bg-white/90 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-all text-slate-600 ${
-                isMobile && isSidebarOpen ? 'ring-1 ring-slate-200/50' : ''
-              }`}
-              title={isSidebarOpen ? 'Collapse Sidebar' : 'Open Sidebar'}
-            >
-              {isSidebarOpen ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
-            </button>
-          </div>
-
           <div className="flex-grow overflow-y-auto p-5 space-y-5">
             <div className={`flex items-center justify-between mb-2 ${isMobile ? 'pr-12' : ''}`}>
               <h2 className="text-xl font-bold text-slate-900 uppercase tracking-tight">Intelligence</h2>

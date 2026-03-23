@@ -57,7 +57,7 @@ export function BrandLoader({
           cols = 5;
           rows = 3;
           dots = [
-            { r: 0, c: 0 }, { r: 0, c: 2 }, { r: 0, c: 4 },
+            { r: 0, c: 0 }, { r: 0, c: 4 },
             { r: 1, c: 0 }, { r: 1, c: 2 }, { r: 1, c: 4 },
             { r: 2, c: 1 }, { r: 2, c: 3 }
           ];

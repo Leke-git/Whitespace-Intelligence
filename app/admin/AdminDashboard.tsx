@@ -110,9 +110,9 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="h-screen bg-slate-50 flex overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-64 bg-slate-900 text-white flex flex-col">
+      <aside className="w-64 bg-slate-900 text-white flex flex-col flex-shrink-0">
         <div className="p-6 border-b border-slate-800">
           <div className="flex items-center gap-2">
             <BrandLoader size="sm" variant="dots" isStatic={true} />

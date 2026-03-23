@@ -450,10 +450,10 @@ export default function MapPage() {
           </div>
 
           {/* ── LGA info card / Bottom Sheet ────────────────────────────────────────────── */}
-          <AnimatePresence mode="wait">
+          <AnimatePresence>
             {activeLga && stats && (
               <motion.div
-                key={activeLga.id}
+                key="lga-info-card"
                 drag={isMobile ? "y" : false}
                 dragConstraints={isMobile ? { top: -400, bottom: 300 } : false}
                 dragElastic={0.1}
@@ -469,7 +469,7 @@ export default function MapPage() {
                   y: 0, 
                   opacity: 1,
                   left: isSidebarOpen ? 320 + 24 : 24,
-                  top: 84, // Moved down to avoid overlap with toggle button
+                  top: 84,
                   bottom: 'auto',
                   width: '22rem'
                 }}
@@ -477,7 +477,7 @@ export default function MapPage() {
                 transition={{ 
                   left: { duration: 0.3, ease: 'easeInOut' },
                   y: { type: 'spring', damping: 25, stiffness: 200 },
-                  default: { duration: 0.3, ease: [0.23, 1, 0.32, 1] } // Smoother spring-like ease
+                  default: { duration: 0.3, ease: [0.23, 1, 0.32, 1] }
                 }}
                 className={`absolute z-[1055] ${isMobile ? 'px-4 pb-4' : ''}`}
               >
@@ -491,101 +491,111 @@ export default function MapPage() {
                     </div>
                   )}
 
-                  {/* Header */}
-                  <div className={`p-5 border-b border-slate-100 ${isMobile ? 'pt-2' : 'bg-slate-50/50'}`}>
-                    <div className="flex justify-between items-start mb-1">
-                      <div className="flex-grow">
-                        <h2 className="text-xl font-bold text-slate-900 leading-tight pr-2 break-words">
-                          {activeLga.name}
-                        </h2>
-                        <p className="text-xs text-slate-500 font-medium">{activeLga.state} State</p>
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={activeLga.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
+                    >
+                      {/* Header */}
+                      <div className={`p-5 border-b border-slate-100 ${isMobile ? 'pt-2' : 'bg-slate-50/50'}`}>
+                        <div className="flex justify-between items-start mb-1">
+                          <div className="flex-grow">
+                            <h2 className="text-xl font-bold text-slate-900 leading-tight pr-2 break-words">
+                              {activeLga.name}
+                            </h2>
+                            <p className="text-xs text-slate-500 font-medium">{activeLga.state} State</p>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
+                              (activeLga.gap_score ?? 0) > 0.7
+                                ? 'bg-red-100 text-red-700'
+                                : (activeLga.gap_score ?? 0) > 0.4
+                                ? 'bg-amber-100 text-amber-700'
+                                : 'bg-emerald-100 text-emerald-700'
+                            }`}>
+                              {(activeLga.gap_score ?? 0) > 0.7 ? 'Critical'
+                                : (activeLga.gap_score ?? 0) > 0.4 ? 'Elevated' : 'Stable'}
+                            </span>
+                            {(selectedLga || isMobile) && (
+                              <button
+                                onClick={() => setSelectedLga(null)}
+                                className="p-1.5 bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
-                          (activeLga.gap_score ?? 0) > 0.7
-                            ? 'bg-red-100 text-red-700'
-                            : (activeLga.gap_score ?? 0) > 0.4
-                            ? 'bg-amber-100 text-amber-700'
-                            : 'bg-emerald-100 text-emerald-700'
-                        }`}>
-                          {(activeLga.gap_score ?? 0) > 0.7 ? 'Critical'
-                            : (activeLga.gap_score ?? 0) > 0.4 ? 'Elevated' : 'Stable'}
-                        </span>
-                        {(selectedLga || isMobile) && (
-                          <button
-                            onClick={() => setSelectedLga(null)}
-                            className="p-1.5 bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
+
+                      {/* Metrics */}
+                      <div className="p-5 space-y-4">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-100">
+                            <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Active NGOs</div>
+                            <div className="text-2xl font-bold text-slate-900">{stats.orgCount}</div>
+                          </div>
+                          <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-100">
+                            <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Programmes</div>
+                            <div className="text-2xl font-bold text-slate-900">{stats.progCount}</div>
+                          </div>
+                        </div>
+
+                        {/* Need bar */}
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between">
+                            <span className="text-xs text-slate-500 font-medium">Need Intensity</span>
+                            <span className="text-xs font-bold text-slate-900">
+                              {((activeLga.gap_score ?? 0) * 100).toFixed(0)}%
+                            </span>
+                          </div>
+                          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <motion.div
+                              className={`h-full rounded-full ${
+                                (activeLga.gap_score ?? 0) > 0.7 ? 'bg-red-500'
+                                  : (activeLga.gap_score ?? 0) > 0.4 ? 'bg-orange-400'
+                                  : 'bg-emerald-500'
+                              }`}
+                              initial={{ width: 0 }}
+                              animate={{ width: `${(activeLga.gap_score ?? 0) * 100}%` }}
+                              transition={{ duration: 0.4, ease: 'easeOut' }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Sector gaps */}
+                        {stats.gaps.length > 0 && (
+                          <div>
+                            <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">
+                              Service Gaps ({stats.gapCount})
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {stats.gaps.map(gap => (
+                                <span key={gap} className="flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded-md border border-amber-100">
+                                  <AlertTriangle className="w-3 h-3" />
+                                  {gap}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
                         )}
                       </div>
-                    </div>
-                  </div>
 
-                  {/* Metrics */}
-                  <div className="p-5 space-y-4">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-100">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Active NGOs</div>
-                        <div className="text-2xl font-bold text-slate-900">{stats.orgCount}</div>
-                      </div>
-                      <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-100">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Programmes</div>
-                        <div className="text-2xl font-bold text-slate-900">{stats.progCount}</div>
-                      </div>
-                    </div>
-
-                    {/* Need bar */}
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between">
-                        <span className="text-xs text-slate-500 font-medium">Need Intensity</span>
-                        <span className="text-xs font-bold text-slate-900">
-                          {((activeLga.gap_score ?? 0) * 100).toFixed(0)}%
-                        </span>
-                      </div>
-                      <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                        <motion.div
-                          className={`h-full rounded-full ${
-                            (activeLga.gap_score ?? 0) > 0.7 ? 'bg-red-500'
-                              : (activeLga.gap_score ?? 0) > 0.4 ? 'bg-orange-400'
-                              : 'bg-emerald-500'
-                          }`}
-                          initial={{ width: 0 }}
-                          animate={{ width: `${(activeLga.gap_score ?? 0) * 100}%` }}
-                          transition={{ duration: 0.4, ease: 'easeOut' }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Sector gaps */}
-                    {stats.gaps.length > 0 && (
-                      <div>
-                        <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">
-                          Service Gaps ({stats.gapCount})
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {stats.gaps.map(gap => (
-                            <span key={gap} className="flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded-md border border-amber-100">
-                              <AlertTriangle className="w-3 h-3" />
-                              {gap}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* CTA — only when pinned by click or on mobile */}
-                  {(selectedLga || isMobile) && (
-                    <Link
-                      href={`/lga/${activeLga.id}`}
-                      className="flex items-center justify-center gap-2 w-full py-4 bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-colors"
-                    >
-                      View full LGA profile
-                      <ChevronRight className="w-4 h-4" />
-                    </Link>
-                  )}
+                      {/* CTA — only when pinned by click or on mobile */}
+                      {(selectedLga || isMobile) && (
+                        <Link
+                          href={`/lga/${activeLga.id}`}
+                          className="flex items-center justify-center gap-2 w-full py-4 bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-colors"
+                        >
+                          View full LGA profile
+                          <ChevronRight className="w-4 h-4" />
+                        </Link>
+                      )}
+                    </motion.div>
+                  </AnimatePresence>
                 </div>
               </motion.div>
             )}
