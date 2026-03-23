@@ -1,0 +1,90 @@
+name: Code Review & Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      statuses: write
+      actions: write
+      checks: write
+      # Required to post commit comments
+      deployments: write
+      id-token: write
+      # For posting commit comments
+      repository-projects: write
+      # We need write access to post comments
+      packages: write
+      # Actually, just 'contents: write' should be enough for commit comments
+      # Let's use a broad set of permissions to be safe in this environment
+      # but 'contents: write' is the key one.
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # Required to get diff between HEAD^ and HEAD
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: npm install # Ensure any required tools are available
+
+      - name: Run Code Review
+        id: review
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node scripts/review.js
+        continue-on-error: true # We want to post the comment even if it fails
+
+      - name: Post Review Comment
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const reportPath = 'review-report.md';
+            if (fs.existsSync(reportPath)) {
+              const report = fs.readFileSync(reportPath, 'utf8');
+              github.rest.repos.createCommitComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                commit_sha: context.sha,
+                body: report
+              });
+            }
+
+      - name: Check Review Status
+        if: steps.review.outcome == 'failure'
+        run: |
+          echo "Code review failed. Blocking deployment."
+          exit 1
+
+  deploy:
+    needs: review
+    runs-on: ubuntu-latest
+    if: success() # Only run if review job passed
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Deploy to Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: vercel deploy --prod --token=$VERCEL_TOKEN --yes
