@@ -16,6 +16,22 @@ async function migrate() {
   try {
     console.log('✅ Connected to Supabase API.');
 
+    // Check if exec_sql RPC exists
+    const { error: rpcCheckError } = await supabase.rpc('exec_sql', {
+      sql: 'SELECT 1'
+    });
+
+    if (rpcCheckError && rpcCheckError.message.includes('function rpc(exec_sql) does not exist')) {
+      console.error('❌ ERROR: The "exec_sql" RPC function is not defined in your Supabase project.');
+      console.error('👉 Please run the following SQL in your Supabase SQL Editor first:');
+      console.error(`
+        CREATE OR REPLACE FUNCTION exec_sql(sql text)
+        RETURNS void LANGUAGE plpgsql SECURITY DEFINER
+        AS $$ BEGIN EXECUTE sql; END; $$;
+      `);
+      process.exit(1);
+    }
+
     // Create migrations table if it doesn't exist via exec_sql
     await supabase.rpc('exec_sql', {
       sql: `
