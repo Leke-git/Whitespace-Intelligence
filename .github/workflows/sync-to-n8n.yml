@@ -27,9 +27,15 @@ jobs:
       - name: Find changed workflow files
         id: changed
         run: |
-          CHANGED=$(git diff --name-only HEAD~1 HEAD -- 'n8n/**/*.json' 2>/dev/null || \
-                    git diff --name-only $(git hash-object -t tree /dev/null) HEAD -- 'n8n/**/*.json')
-          echo "Changed files:"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # Manual trigger: sync all n8n workflow files
+            CHANGED=$(find n8n -name "*.json")
+          else
+            # Push trigger: sync only changed files
+            CHANGED=$(git diff --name-only HEAD~1 HEAD -- 'n8n/**/*.json' 2>/dev/null || \
+                      git diff --name-only $(git hash-object -t tree /dev/null) HEAD -- 'n8n/**/*.json')
+          fi
+          echo "Files to sync:"
           echo "$CHANGED"
           echo "files<<EOF" >> $GITHUB_OUTPUT
           echo "$CHANGED" >> $GITHUB_OUTPUT
