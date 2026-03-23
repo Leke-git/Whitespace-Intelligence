@@ -4,11 +4,11 @@
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "whitespace-enquiry",
+        "path": "whitespace",
         "options": {}
       },
       "id": "webhook-trigger",
-      "name": "Webhook",
+      "name": "Webhook Trigger",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
       "position": [
@@ -20,10 +20,22 @@
     {
       "parameters": {
         "values": {
-          "number": [
+          "string": [
             {
               "name": "webhookSecret",
-              "value": "={{ $('Webhook').item.json.body.webhookSecret }}"
+              "value": "={{ $json.body.webhookSecret }}"
+            },
+            {
+              "name": "SUPABASE_URL",
+              "value": "={{ $env.SUPABASE_URL }}"
+            },
+            {
+              "name": "SUPABASE_SERVICE_KEY",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "GEMINI_API_KEY",
+              "value": "={{ $env.GEMINI_API_KEY }}"
             }
           ]
         },
@@ -37,14 +49,302 @@
         300,
         300
       ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.webhookSecret }}",
+              "value2": "={{ $env.WEBHOOK_SECRET }}"
+            }
+          ]
+        }
+      },
+      "id": "security-gate",
+      "name": "Security Gate",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        500,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "httpCode": "401",
+        "responseBody": "{\"error\":\"Unauthorized\"}"
+      },
+      "id": "reject-unauthorized",
+      "name": "Reject Unauthorized",
+      "type": "n8n-nodes-base.stop",
+      "typeVersion": 1,
+      "position": [
+        500,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value": "={{ $json.body.intent }}",
+        "rules": {
+          "rules": [
+            {
+              "value": "process-gap-analysis",
+              "output": 0
+            },
+            {
+              "value": "new-ngo-registration",
+              "output": 1
+            },
+            {
+              "value": "sync-ngo-data",
+              "output": 2
+            }
+          ]
+        }
+      },
+      "id": "intent-router",
+      "name": "Intent Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        700,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.SUPABASE_URL }}/rest/v1/programmes?id=eq.{{ $json.body.programme_id }}&select=*,lga_gap_scores(*)",
+        "authentication": "headerAuth",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $json.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.SUPABASE_SERVICE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-data-supabase",
+      "name": "Fetch Data Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        900,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={{ $json.GEMINI_API_KEY }}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "contents",
+              "value": "={{ { \"parts\": [ { \"text\": \"Analyze this programme: \" + $json.name + \" in LGA: \" + $json.lga_gap_scores.name + \" with gap score: \" + $json.lga_gap_scores.gap_score + \". Output impact_score (1-10), coordination_priority (high/medium/low), recommendation, and is_redundant (boolean). Return ONLY valid JSON.\" } ] } }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "call-gemini-ai",
+      "name": "Call Gemini AI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $json.SUPABASE_URL }}/rest/v1/programmes?id=eq.{{ $json.body.programme_id }}",
+        "authentication": "headerAuth",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $json.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.SUPABASE_SERVICE_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "ai_extracted",
+              "value": "true"
+            },
+            {
+              "name": "impact_summary",
+              "value": "={{ $json.candidates[0].content.parts[0].text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "update-supabase-ai",
+      "name": "Update Supabase AI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        1300,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.SUPABASE_URL }}/rest/v1/organisations?id=eq.{{ $json.body.ngo_id }}&select=*",
+        "authentication": "headerAuth",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $json.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.SUPABASE_SERVICE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-ngo-details",
+      "name": "Fetch NGO Details",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "=New NGO Registration: {{ $json.legal_name }} (CAC: {{ $json.cac_number }}). Verification required."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "notify-admin-slack",
+      "name": "Notify Admin Slack",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        300
+      ]
     }
   ],
   "connections": {
-    "Webhook": {
+    "Webhook Trigger": {
       "main": [
         [
           {
             "node": "Secrets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Secrets": {
+      "main": [
+        [
+          {
+            "node": "Security Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Security Gate": {
+      "main": [
+        [
+          {
+            "node": "Intent Router",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Intent Router": {
+      "main": [
+        [
+          {
+            "node": "Fetch Data Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fetch NGO Details",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Fetch Data Supabase": {
+      "main": [
+        [
+          {
+            "node": "Call Gemini AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Gemini AI": {
+      "main": [
+        [
+          {
+            "node": "Update Supabase AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch NGO Details": {
+      "main": [
+        [
+          {
+            "node": "Notify Admin Slack",
             "type": "main",
             "index": 0
           }
