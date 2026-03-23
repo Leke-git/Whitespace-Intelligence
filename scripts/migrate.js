@@ -52,11 +52,11 @@ async function migrate() {
     const files = fs.readdirSync(migrationsDir).sort();
     
     // Get run migrations
-    const { data: runMigrations, error: fetchError } = await supabase.rpc('exec_sql', {
-      sql: 'SELECT name FROM _migrations'
-    });
+    const { data: runMigrations, error: fetchError } = await supabase
+      .from('_migrations')
+      .select('name');
 
-    if (fetchError) {
+    if (fetchError && !fetchError.message.includes('relation "_migrations" does not exist')) {
       console.error('❌ Error fetching migrations:', fetchError.message);
       process.exit(1);
     }
@@ -77,16 +77,14 @@ async function migrate() {
       // Run migration and record it
       const { error: runError } = await supabase.rpc('exec_sql', {
         sql: `
-          BEGIN;
           ${sql}
           INSERT INTO _migrations (name) VALUES ('${file}');
-          COMMIT;
         `
       });
 
       if (runError) {
         console.error(`❌ Migration failed: ${file}`);
-        console.error(runError.message);
+        console.error('Error details:', runError);
         process.exit(1);
       }
 
