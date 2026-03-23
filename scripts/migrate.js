@@ -1,31 +1,31 @@
-const { Client } = require('pg');
+const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 const path = require('path');
 
 async function migrate() {
-  const dbUrl = process.env.SUPABASE_DB_URL;
-  if (!dbUrl) {
-    console.error('❌ ERROR: SUPABASE_DB_URL secret is not set in GitHub Secrets.');
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    console.error('❌ ERROR: SUPABASE_URL or SUPABASE_SERVICE_KEY secret is not set in GitHub Secrets.');
     process.exit(1);
   }
 
-  const client = new Client({
-    connectionString: dbUrl,
-    ssl: { rejectUnauthorized: false }
-  });
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
-    await client.connect();
-    console.log('✅ Connected to Supabase database.');
+    console.log('✅ Connected to Supabase API.');
 
-    // Create migrations table if it doesn't exist
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS _migrations (
-        id SERIAL PRIMARY KEY,
-        name TEXT NOT NULL UNIQUE,
-        run_at TIMESTAMPTZ DEFAULT now()
-      );
-    `);
+    // Create migrations table if it doesn't exist via exec_sql
+    await supabase.rpc('exec_sql', {
+      sql: `
+        CREATE TABLE IF NOT EXISTS _migrations (
+          id SERIAL PRIMARY KEY,
+          name TEXT NOT NULL UNIQUE,
+          run_at TIMESTAMPTZ DEFAULT now()
+        );
+      `
+    });
 
     const migrationsDir = path.join(__dirname, '../database/migrations');
     if (!fs.existsSync(migrationsDir)) {
@@ -34,8 +34,18 @@ async function migrate() {
     }
 
     const files = fs.readdirSync(migrationsDir).sort();
-    const { rows: runMigrations } = await client.query('SELECT name FROM _migrations');
-    const runMigrationNames = new Set(runMigrations.map(m => m.name));
+    
+    // Get run migrations
+    const { data: runMigrations, error: fetchError } = await supabase.rpc('exec_sql', {
+      sql: 'SELECT name FROM _migrations'
+    });
+
+    if (fetchError) {
+      console.error('❌ Error fetching migrations:', fetchError.message);
+      process.exit(1);
+    }
+
+    const runMigrationNames = new Set((runMigrations || []).map(m => m.name));
 
     for (const file of files) {
       if (!file.endsWith('.sql')) continue;
@@ -48,26 +58,29 @@ async function migrate() {
       console.log(`🚀 Running migration: ${file}`);
       const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
 
-      await client.query('BEGIN');
-      try {
-        await client.query(sql);
-        await client.query('INSERT INTO _migrations (name) VALUES ($1)', [file]);
-        await client.query('COMMIT');
-        console.log(`✅ Migration successful: ${file}`);
-      } catch (err) {
-        await client.query('ROLLBACK');
+      // Run migration and record it
+      const { error: runError } = await supabase.rpc('exec_sql', {
+        sql: `
+          BEGIN;
+          ${sql}
+          INSERT INTO _migrations (name) VALUES ('${file}');
+          COMMIT;
+        `
+      });
+
+      if (runError) {
         console.error(`❌ Migration failed: ${file}`);
-        console.error(err.message);
+        console.error(runError.message);
         process.exit(1);
       }
+
+      console.log(`✅ Migration successful: ${file}`);
     }
 
     console.log('🎉 All migrations complete!');
   } catch (err) {
-    console.error('❌ Database connection error:', err.message);
+    console.error('❌ Migration process error:', err.message);
     process.exit(1);
-  } finally {
-    await client.end();
   }
 }
 
