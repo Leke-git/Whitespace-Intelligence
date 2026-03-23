@@ -7,7 +7,8 @@ on:
     paths:
       - 'database/migrations/**'
       - 'scripts/migrate.js'
-      - '.github/workflows/sync-db.yml'
+      - '.github/workflows/run-migrations.yml'
+  workflow_dispatch:
 
 jobs:
   migrate:
