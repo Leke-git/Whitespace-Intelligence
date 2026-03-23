@@ -98,7 +98,10 @@ export default function DashboardPage() {
   }, [router]);
 
   useEffect(() => {
-    fetchData();
+    const timer = setTimeout(() => {
+      fetchData();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchData]);
 
   const handleSaveBranding = async () => {

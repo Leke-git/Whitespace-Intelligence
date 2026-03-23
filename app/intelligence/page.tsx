@@ -133,7 +133,10 @@ export default function IntelligencePage() {
   }, []);
 
   useEffect(() => {
-    fetchAnalyses();
+    const timer = setTimeout(() => {
+      fetchAnalyses();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchAnalyses]);
 
   const filteredAnalyses = analyses.filter(a => {

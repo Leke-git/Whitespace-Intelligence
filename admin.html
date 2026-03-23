@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WHITESPACE Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-primary: #059669;
+            --color-primary-dark: #047857;
+            --color-accent: #3b82f6;
+            --color-background: #f8fafc;
+            --color-surface: #ffffff;
+            --color-surface-alt: #f1f5f9;
+            --color-text-primary: #0f172a;
+            --color-text-secondary: #475569;
+            --color-text-inverse: #ffffff;
+            --color-border: #e2e8f0;
+            --color-border-focus: #059669;
+        }
+        body {
+            background-color: var(--color-background);
+            color: var(--color-text-primary);
+            font-family: 'Inter', sans-serif;
+        }
+        h1, h2, h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            letter-spacing: -0.02em;
+        }
+        .sidebar-item-active {
+            background-color: var(--color-primary);
+            color: white;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-[#0f172a] text-white flex flex-col fixed h-full">
+        <div class="p-6 border-b border-slate-800">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
+                    <div class="w-4 h-4 bg-white rounded-full"></div>
+                </div>
+                <span class="text-lg font-bold tracking-tight uppercase">WHITESPACE ADMIN</span>
+            </div>
+        </div>
+        <nav class="flex-grow p-4 space-y-2">
+            <button onclick="showTab('overview')" id="tab-overview" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all sidebar-item-active">
+                Overview
+            </button>
+            <button onclick="showTab('verification')" id="tab-verification" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all text-slate-400 hover:bg-slate-800 hover:text-white">
+                NGO Verification
+            </button>
+            <button onclick="showTab('data')" id="tab-data" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all text-slate-400 hover:bg-slate-800 hover:text-white">
+                Data Import
+            </button>
+            <button onclick="showTab('settings')" id="tab-settings" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all text-slate-400 hover:bg-slate-800 hover:text-white">
+                Settings
+            </button>
+        </nav>
+        <div class="p-4 border-t border-slate-800">
+            <button onclick="logout()" class="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white transition-all">
+                Sign Out
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-grow ml-64 p-10">
+        <div id="content-overview" class="tab-content space-y-8">
+            <div class="flex items-center justify-between">
+                <h1 class="text-3xl font-bold text-slate-900">Platform Overview</h1>
+                <button onclick="wipeData()" class="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition-colors">
+                    Wipe Demo Data
+                </button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="text-slate-500 text-sm font-bold uppercase tracking-wider mb-2">Total NGOs</div>
+                    <div id="stat-orgs" class="text-4xl font-bold text-slate-900">0</div>
+                </div>
+                <div class="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="text-slate-500 text-sm font-bold uppercase tracking-wider mb-2">Verified</div>
+                    <div id="stat-verified" class="text-4xl font-bold text-emerald-600">0</div>
+                </div>
+                <div class="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="text-slate-500 text-sm font-bold uppercase tracking-wider mb-2">Programmes</div>
+                    <div id="stat-programmes" class="text-4xl font-bold text-blue-600">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="content-verification" class="tab-content hidden space-y-8">
+            <h1 class="text-3xl font-bold text-slate-900">NGO Verification Queue</h1>
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Organisation</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">CAC Number</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Email</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="verification-list" class="divide-y divide-slate-100">
+                        <tr>
+                            <td colspan="4" class="px-6 py-20 text-center text-slate-500">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="content-data" class="tab-content hidden space-y-8">
+            <h1 class="text-3xl font-bold text-slate-900">Gap Score Data Import</h1>
+            <div class="max-w-2xl bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
+                <h3 class="text-xl font-bold text-slate-900 mb-4">Replace Proxy Data</h3>
+                <p class="text-slate-500 mb-8">Upload a CSV to update the Gap Score for all 774 LGAs.</p>
+                <div class="p-6 border-2 border-dashed border-slate-200 rounded-2xl text-center hover:border-emerald-500 transition-all cursor-pointer relative">
+                    <input type="file" accept=".csv" class="absolute inset-0 opacity-0 cursor-pointer">
+                    <p class="text-slate-600 font-medium">Click to upload or drag and drop</p>
+                    <p class="text-xs text-slate-400 mt-2">CSV format: LGA_ID, GAP_SCORE (0.0 - 1.0)</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="content-settings" class="tab-content hidden space-y-8">
+            <h1 class="text-3xl font-bold text-slate-900">Settings</h1>
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
+                <p class="text-slate-500">Platform settings and configuration.</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+            document.getElementById('content-' + tabId).classList.remove('hidden');
+            
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                item.classList.remove('sidebar-item-active');
+                item.classList.add('text-slate-400', 'hover:bg-slate-800', 'hover:text-white');
+            });
+            document.getElementById('tab-' + tabId).classList.add('sidebar-item-active');
+            document.getElementById('tab-' + tabId).classList.remove('text-slate-400', 'hover:bg-slate-800', 'hover:text-white');
+        }
+
+        function logout() {
+            window.location.href = '/';
+        }
+
+        function wipeData() {
+            if (confirm('Type CONFIRM to wipe all demo data.')) {
+                alert('Demo data wiped successfully.');
+            }
+        }
+
+        // Initialize with overview
+        showTab('overview');
+    </script>
+</body>
+</html>

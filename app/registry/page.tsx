@@ -116,7 +116,10 @@ export default function RegistryPage() {
   }, []);
 
   useEffect(() => {
-    fetchOrgs();
+    const timer = setTimeout(() => {
+      fetchOrgs();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchOrgs]);
 
   const filteredOrgs = orgs.filter(org => {

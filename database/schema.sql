@@ -81,7 +81,8 @@ CREATE TABLE IF NOT EXISTS lga_gap_scores (
     ngo_count_verified SMALLINT DEFAULT 0,
     gap_score          NUMERIC(5,4) GENERATED ALWAYS AS (
         GREATEST(0, LEAST(1, need_index - (ngo_count_verified * 0.05)))
-    ) STORED
+    ) STORED,
+    dummy_data         BOOLEAN DEFAULT false
 );
 
 -- ── 2. SECTORS ────────────────────────────────────────────────
@@ -180,6 +181,7 @@ CREATE TABLE IF NOT EXISTS organisations (
 
   -- Link to auth (Supabase)
   user_id       UUID REFERENCES auth.users(id),
+  dummy_data    BOOLEAN DEFAULT false,
 
   created_at    TIMESTAMPTZ DEFAULT now(),
   updated_at    TIMESTAMPTZ DEFAULT now(),
@@ -252,6 +254,7 @@ CREATE TABLE IF NOT EXISTS programmes (
 
   ai_categorized  BOOLEAN DEFAULT false,
   ai_extracted    BOOLEAN DEFAULT false,  -- extracted from annual report
+  dummy_data      BOOLEAN DEFAULT false,
 
   created_at      TIMESTAMPTZ DEFAULT now(),
   updated_at      TIMESTAMPTZ DEFAULT now(),
@@ -419,6 +422,7 @@ CREATE TABLE IF NOT EXISTS organisation_resources (
   resource_type TEXT NOT NULL DEFAULT 'report' 
                 CHECK (resource_type IN ('report', 'case_study', 'financial_statement', 'policy', 'other')),
   file_size     TEXT, -- e.g., '2.4 MB'
+  dummy_data    BOOLEAN DEFAULT false,
   created_at    TIMESTAMPTZ DEFAULT now(),
   updated_at    TIMESTAMPTZ DEFAULT now()
 );
@@ -432,6 +436,7 @@ CREATE TABLE IF NOT EXISTS organisation_gallery (
   caption       TEXT,
   project_name  TEXT, -- Can be different from programme name or for general work
   category      TEXT, -- e.g., 'Field Work', 'Event', 'Impact'
+  dummy_data    BOOLEAN DEFAULT false,
   created_at    TIMESTAMPTZ DEFAULT now()
 );
 
