@@ -17,7 +17,9 @@ if (!N8N_API_KEY) {
 
 function apiRequest(method, endpoint, body = null) {
   return new Promise((resolve, reject) => {
-    const url = new URL(`${N8N_BASE_URL}/api/v1${endpoint}`);
+    const fullUrl = `${N8N_BASE_URL}/api/v1${endpoint}`;
+    const url = new URL(fullUrl);
+    console.log(`   🌐 API Request: ${method} ${fullUrl}`);
     const isHttps = url.protocol === "https:";
     const lib = isHttps ? https : http;
     const options = {
@@ -67,11 +69,16 @@ function validateWorkflow(workflow, filePath) {
 }
 
 function prepareBody(workflow) {
-  const { id, ...rest } = workflow;
-  return rest;
+  const allowed = ["name", "nodes", "connections", "settings", "staticData", "meta", "tags"];
+  const body = {};
+  allowed.forEach((key) => {
+    if (workflow[key] !== undefined) body[key] = workflow[key];
+  });
+  return body;
 }
 
 async function main() {
+  console.log(`🔍 Raw CHANGED_FILES from environment: "${CHANGED_FILES}"`);
   const changedFiles = CHANGED_FILES.split("\n")
     .map((f) => f.trim())
     .filter((f) => f.endsWith(".json") && f.startsWith("n8n/"));
