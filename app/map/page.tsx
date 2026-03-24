@@ -64,12 +64,23 @@ const LEGENDS: Record<MapMode, { title: string; items: { label: string; color: s
       { label: 'Registered', color: '#3b82f6' },
     ],
   },
+  funding: {
+    title: 'Donor Funding (USD)',
+    items: [
+      { label: '$1M+',     color: '#1e3a8a' },
+      { label: '$500k+',   color: '#2563eb' },
+      { label: '$100k+',   color: '#60a5fa' },
+      { label: '$10k+',    color: '#dbeafe' },
+      { label: 'None',     color: '#f1f5f9' },
+    ],
+  },
 };
 
 const MODE_META: Record<MapMode, { label: string; Icon: React.ElementType }> = {
   gap:     { label: 'Gap Score',    Icon: BarChart3 },
   density: { label: 'NGO Density',  Icon: Users },
   trust:   { label: 'Trust Tier',   Icon: Activity },
+  funding: { label: 'Funding',      Icon: Layers },
 };
 
 const SECTORS = ['Health', 'Education', 'WASH', 'Nutrition', 'Protection'];
@@ -86,6 +97,8 @@ export default function MapPage() {
     programmes: any;
   }[]>([]);
   const [geoJson, setGeoJson]         = useState<GeoJsonObject | null>(null);
+  const [stateGeoJson, setStateGeoJson] = useState<GeoJsonObject | null>(null);
+  const [view, setView]               = useState<'national' | 'lga'>('national');
   const [selectedLga, setSelectedLga] = useState<any>(null);
   const [hoveredLga, setHoveredLga]   = useState<any>(null);
   const [searchTerm, setSearchTerm]   = useState('');
@@ -109,11 +122,29 @@ export default function MapPage() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const [{ data: lgaData }, { data: progData }] = await Promise.all([
+      const [
+        { data: lgaData }, 
+        { data: progData },
+        { data: fundingData }
+      ] = await Promise.all([
         supabase.from('lga_gap_scores').select('*'),
         supabase.from('programme_lgas').select('lga_id, programme_id, programmes(id, organisation_id, status, sector_id)'),
+        supabase.from('iati_funding').select('lga_id, amount_usd'),
       ]);
-      setLgas(lgaData ?? []);
+
+      // Aggregate funding by LGA
+      const fundingMap = (fundingData ?? []).reduce((acc: any, curr: any) => {
+        if (!curr.lga_id) return acc;
+        acc[curr.lga_id] = (acc[curr.lga_id] || 0) + Number(curr.amount_usd);
+        return acc;
+      }, {});
+
+      const enrichedLgas = (lgaData ?? []).map(lga => ({
+        ...lga,
+        total_funding_usd: fundingMap[lga.id] || 0
+      }));
+
+      setLgas(enrichedLgas);
       setProgrammes(progData ?? []);
       setLoading(false);
     })();
@@ -121,6 +152,7 @@ export default function MapPage() {
 
   // ── Fetch GeoJSON once ────────────────────────────────────────────────────
   useEffect(() => {
+    // Fetch LGA GeoJSON
     fetch('https://hjxcwscjtxjmjqklsecc.supabase.co/storage/v1/object/public/geodata/nigeria_lga.geojson')
       .then(r => r.json())
       .then((data: GeoJsonObject) => {
@@ -128,10 +160,28 @@ export default function MapPage() {
         setGeoLoading(false);
       })
       .catch(err => {
-        console.error('GeoJSON load failed:', err);
+        console.error('LGA GeoJSON load failed:', err);
         setGeoLoading(false);
       });
+
+    // Fetch State GeoJSON for national view
+    fetch('https://raw.githubusercontent.com/chrieke/geojson-nigeria/master/nigeria_states.geojson')
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
+        return r.json();
+      })
+      .then((data: GeoJsonObject) => {
+        setStateGeoJson(data);
+      })
+      .catch(err => {
+        console.error('State GeoJSON load failed:', err);
+      });
   }, []);
+
+  const currentGeoJson = useMemo(() => {
+    if (view === 'national') return stateGeoJson;
+    return geoJson;
+  }, [view, stateGeoJson, geoJson]);
 
   // ── Stats for hovered/selected LGA ────────────────────────────────────────
   const stats = useMemo(() => {
@@ -243,6 +293,31 @@ export default function MapPage() {
                     onChange={e => setSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                   />
+                </div>
+
+                {/* View Switcher */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Map View
+                  </label>
+                  <div className="flex gap-1 p-1 bg-slate-100 rounded-xl">
+                    <button
+                      onClick={() => setView('national')}
+                      className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
+                        view === 'national' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      National (States)
+                    </button>
+                    <button
+                      onClick={() => setView('lga')}
+                      className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
+                        view === 'lga' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      Local (LGAs)
+                    </button>
+                  </div>
                 </div>
 
                 {/* Mode switcher */}
@@ -424,10 +499,21 @@ export default function MapPage() {
 
           <LeafletMap
             lgas={filteredLgas}
-            onSelectLga={setSelectedLga}
+            onSelectLga={(lga) => {
+              if (view === 'national') {
+                // If we clicked a state in national view, we should ideally zoom in
+                // For now, we'll just toggle to LGA view if we have a state match
+                if (lga && lga.state) {
+                  setSelectedState(lga.state);
+                  setView('lga');
+                }
+              } else {
+                setSelectedLga(lga);
+              }
+            }}
             onHoverLga={setHoveredLga}
             mapMode={mapMode}
-            geoJson={geoJson}
+            geoJson={currentGeoJson}
             isMobile={isMobile}
           />
 
@@ -539,8 +625,10 @@ export default function MapPage() {
                             <div className="text-2xl font-bold text-slate-900">{stats.orgCount}</div>
                           </div>
                           <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-100">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Programmes</div>
-                            <div className="text-2xl font-bold text-slate-900">{stats.progCount}</div>
+                            <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Funding (USD)</div>
+                            <div className="text-2xl font-bold text-slate-900">
+                              ${(activeLga.total_funding_usd || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                            </div>
                           </div>
                         </div>
 

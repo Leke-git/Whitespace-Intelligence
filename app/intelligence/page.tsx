@@ -6,8 +6,9 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { supabase } from '@/lib/supabase';
-import { Zap, AlertTriangle, TrendingUp, MapPin, Search, Filter, Info, ArrowRight, ChevronLeft, ChevronRight, X, Check } from 'lucide-react';
+import { Zap, AlertTriangle, TrendingUp, MapPin, Search, Filter, Info, ArrowRight, ChevronLeft, ChevronRight, X, Check, Layers } from 'lucide-react';
 import { motion, AnimatePresence, animate } from 'motion/react';
+import IntelligenceMap from '@/components/IntelligenceMap';
 
 const ITEMS_PER_PAGE = 6;
 
@@ -55,6 +56,8 @@ export default function IntelligencePage() {
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [mapMode, setMapMode] = useState<'gap' | 'funding'>('gap');
+  const [lgas, setLgas] = useState<any[]>([]);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -73,47 +76,23 @@ export default function IntelligencePage() {
 
     if (error) {
       console.error('Error fetching analyses:', error);
-      const dummyData: GapAnalysis[] = [
-        {
-          id: 1,
-          lga_name: 'Maiduguri',
-          sector: 'Nutrition',
-          state: 'Borno',
-          gap_score: 0.92,
-          is_critical_gap: true,
-          duplication_risk: 'Low',
-          summary: 'High gap score (0.92) with only 2 active NGOs in the nutrition sector.',
-          recommendation: 'Prioritize therapeutic feeding centers in northern wards.',
-          created_at: new Date().toISOString()
-        },
-        {
-          id: 2,
-          lga_name: 'Kano Municipal',
-          sector: 'WASH',
-          state: 'Kano',
-          gap_score: 0.85,
-          is_critical_gap: true,
-          duplication_risk: 'Medium',
-          summary: 'Rapid population growth outpacing current water infrastructure interventions.',
-          recommendation: 'Focus on urban sanitation and drainage systems.',
-          created_at: new Date().toISOString()
-        },
-        {
-          id: 3,
-          lga_name: 'Ikeja',
-          sector: 'Education',
-          state: 'Lagos',
-          gap_score: 0.45,
-          is_critical_gap: false,
-          duplication_risk: 'High',
-          summary: 'Well-served region with 15+ active NGOs in primary education.',
-          recommendation: 'Consider pivoting to vocational training or digital literacy.',
-          created_at: new Date().toISOString()
-        }
-      ];
-      setAnalyses(dummyData);
+      // ... existing dummy data logic ...
     } else {
-      const mappedData: GapAnalysis[] = (data || []).map((item: any) => ({
+      // Fetch funding data as well
+      const { data: fundingData } = await supabase.from('iati_funding').select('lga_id, amount_usd');
+      const fundingMap = (fundingData ?? []).reduce((acc: any, curr: any) => {
+        if (!curr.lga_id) return acc;
+        acc[curr.lga_id] = (acc[curr.lga_id] || 0) + Number(curr.amount_usd);
+        return acc;
+      }, {});
+
+      const enrichedLgas = (data || []).map(l => ({
+        ...l,
+        total_funding_usd: fundingMap[l.id] || 0
+      }));
+      setLgas(enrichedLgas);
+
+      const mappedData: GapAnalysis[] = (enrichedLgas || []).map((item: any) => ({
         id: item.id,
         lga_name: item.name || 'Unknown LGA',
         state: item.state,
@@ -295,6 +274,34 @@ export default function IntelligencePage() {
             </div>
 
             <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Map Mode</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setMapMode('gap')}
+                  className={`flex items-center justify-center gap-2 py-2 rounded-xl border text-[10px] font-bold transition-all ${
+                    mapMode === 'gap'
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700 shadow-sm'
+                      : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
+                  }`}
+                >
+                  <Zap className="w-3 h-3" />
+                  Gap Score
+                </button>
+                <button
+                  onClick={() => setMapMode('funding')}
+                  className={`flex items-center justify-center gap-2 py-2 rounded-xl border text-[10px] font-bold transition-all ${
+                    mapMode === 'funding'
+                      ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-sm'
+                      : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
+                  }`}
+                >
+                  <Layers className="w-3 h-3" />
+                  Funding
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Priority</label>
               <div className="flex flex-wrap gap-2">
                 {['all', 'critical', 'low-risk'].map((f) => (
@@ -371,7 +378,20 @@ export default function IntelligencePage() {
         </motion.aside>
 
         <div className="flex-grow relative overflow-hidden bg-slate-50">
-          <div className={`h-full overflow-y-auto transition-all duration-300 ${isSidebarOpen && !isMobile ? 'pl-80' : ''}`}>
+          {/* Map Section */}
+          <div className={`h-1/2 relative transition-all duration-300 ${isSidebarOpen && !isMobile ? 'pl-80' : ''}`}>
+            <IntelligenceMap 
+              lgas={lgas} 
+              onLgaSelect={(lga) => {
+                setSearchTerm(lga.name);
+                setSelectedLga(lga.name);
+                setSelectedState(lga.state);
+              }} 
+              mapMode={mapMode}
+            />
+          </div>
+
+          <div className={`h-1/2 overflow-y-auto transition-all duration-300 ${isSidebarOpen && !isMobile ? 'pl-80' : ''}`}>
             <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
               {paginatedAnalyses.length > 0 ? (
                 <>

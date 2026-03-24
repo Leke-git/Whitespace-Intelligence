@@ -398,7 +398,35 @@ CREATE TABLE IF NOT EXISTS funding_events (
   created_at   TIMESTAMPTZ DEFAULT now()
 );
 
--- ── 14. AUDIT LOG ─────────────────────────────────────────────
+-- ── 14. IATI FUNDING ──────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS iati_funding (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  iati_identifier TEXT NOT NULL, -- Unique IATI activity identifier
+  donor_name      TEXT NOT NULL,
+  donor_id        TEXT,
+  title           TEXT NOT NULL,
+  description     TEXT,
+  
+  -- Financials
+  amount_usd      NUMERIC(15,2) NOT NULL,
+  transaction_type TEXT, -- 'commitment', 'disbursement', etc.
+  transaction_date DATE NOT NULL,
+  
+  -- Categorization
+  sector_id       SMALLINT REFERENCES sectors(id),
+  lga_id          INTEGER REFERENCES lga_gap_scores(id),
+  
+  -- Metadata
+  source_url      TEXT,
+  last_updated_at TIMESTAMPTZ DEFAULT now(),
+  created_at      TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS iati_funding_lga_idx ON iati_funding(lga_id);
+CREATE INDEX IF NOT EXISTS iati_funding_sector_idx ON iati_funding(sector_id);
+CREATE INDEX IF NOT EXISTS iati_funding_donor_idx ON iati_funding(donor_name);
+
+-- ── 15. AUDIT LOG ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS audit_log (
   id          BIGSERIAL PRIMARY KEY,
   actor_id    UUID REFERENCES auth.users(id),

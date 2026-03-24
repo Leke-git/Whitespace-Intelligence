@@ -1,12 +1,13 @@
 'use client';
 
-import { useCallback, useRef, useEffect } from 'react';
+import { useCallback, useRef, useEffect, useState, useMemo } from 'react';
 import { MapContainer, GeoJSON, ZoomControl, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { Feature, GeoJsonObject } from 'geojson';
 
-export type MapMode = 'gap' | 'density' | 'trust';
+export type MapMode = 'gap' | 'density' | 'trust' | 'funding';
+export type ViewLevel = 'national' | 'state';
 
 export interface LGA {
   id: number;
@@ -15,6 +16,7 @@ export interface LGA {
   gap_score?: number;
   ngo_count_total?: number;
   ngo_count_verified?: number;
+  total_funding_usd?: number;
   dominant_trust_tier?: 'registered' | 'verified' | 'active' | 'accredited';
   [key: string]: unknown;
 }
@@ -25,6 +27,7 @@ interface Props {
   onHoverLga: (lga: LGA | null) => void;
   mapMode?: MapMode;
   geoJson?: GeoJsonObject | null;
+  stateGeoJson?: GeoJsonObject | null;
   isMobile?: boolean;
 }
 
@@ -51,6 +54,14 @@ function densityColour(count: number): string {
   return '#f1f5f9';
 }
 
+function fundingColour(amount: number): string {
+  if (amount >= 1000000) return '#1e3a8a'; // Very High (Blue 900)
+  if (amount >= 500000)  return '#2563eb'; // High (Blue 600)
+  if (amount >= 100000)  return '#60a5fa'; // Mid (Blue 400)
+  if (amount >= 10000)   return '#dbeafe'; // Low (Blue 100)
+  return '#f1f5f9'; // None (Slate 100)
+}
+
 const TRUST_COLOURS: Record<string, string> = {
   registered: '#3b82f6',
   verified:   '#8b5cf6',
@@ -58,8 +69,17 @@ const TRUST_COLOURS: Record<string, string> = {
   accredited: '#f59e0b',
 };
 
-function GeoJsonLayer({ geoJson, lgaMap, filteredIds, mapMode, onSelectLga, onHoverLga }: {
+function GeoJsonLayer({ 
+  geoJson, 
+  stateGeoJson,
+  lgaMap, 
+  filteredIds, 
+  mapMode, 
+  onSelectLga, 
+  onHoverLga 
+}: {
   geoJson: GeoJsonObject;
+  stateGeoJson?: GeoJsonObject | null;
   lgaMap: Map<string, LGA>;
   filteredIds: Set<number>;
   mapMode: MapMode;
@@ -67,6 +87,24 @@ function GeoJsonLayer({ geoJson, lgaMap, filteredIds, mapMode, onSelectLga, onHo
   onHoverLga: (lga: LGA | null) => void;
 }) {
   const map = useMap();
+  const [viewLevel, setViewLevel] = useState<ViewLevel>('national');
+  const [selectedState, setSelectedState] = useState<string | null>(null);
+
+  // Aggregate data to state level
+  const stateData = useMemo(() => {
+    const states = new Map<string, { gap: number[], count: number, funding: number, lgas: number }>();
+    lgaMap.forEach(lga => {
+      const s = lga.state;
+      if (!states.has(s)) states.set(s, { gap: [], count: 0, funding: 0, lgas: 0 });
+      const d = states.get(s)!;
+      d.gap.push(lga.gap_score ?? 0);
+      d.count += lga.ngo_count_verified ?? 0;
+      d.funding += lga.total_funding_usd ?? 0;
+      d.lgas += 1;
+    });
+    return states;
+  }, [lgaMap]);
+
   useEffect(() => {
     const STATE_LABELS: [number, number, string][] = [
       [7.524724, 5.430890, 'Abia'],
@@ -110,66 +148,93 @@ function GeoJsonLayer({ geoJson, lgaMap, filteredIds, mapMode, onSelectLga, onHo
 
     const markers: L.Marker[] = [];
 
-    STATE_LABELS.forEach(([lng, lat, name]) => {
-      const icon = L.divIcon({
-        className: '',
-        html: `<span style="
-          font-family: 'DM Sans', system-ui, sans-serif;
-          font-size: 9px;
-          font-weight: 700;
-          color: #64748b;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          white-space: nowrap;
-          pointer-events: none;
-          text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff;
-        ">${name}</span>`,
-        iconAnchor: [0, 0],
+    if (viewLevel === 'national') {
+      STATE_LABELS.forEach(([lng, lat, name]) => {
+        const icon = L.divIcon({
+          className: '',
+          html: `<span style="
+            font-family: 'DM Sans', system-ui, sans-serif;
+            font-size: 9px;
+            font-weight: 700;
+            color: #64748b;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            white-space: nowrap;
+            pointer-events: none;
+            text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff;
+          ">${name}</span>`,
+          iconAnchor: [0, 0],
+        });
+
+        const marker = L.marker([lat, lng], {
+          icon,
+          interactive: false,
+          zIndexOffset: -1000,
+        }).addTo(map);
+
+        markers.push(marker);
       });
-
-      const marker = L.marker([lat, lng], {
-        icon,
-        interactive: false,
-        zIndexOffset: -1000,
-      }).addTo(map);
-
-      markers.push(marker);
-    });
+    }
 
     return () => {
       markers.forEach(m => map.removeLayer(m));
     };
-  }, [map]);
+  }, [map, viewLevel]);
+
   const hoveredRef = useRef<string | null>(null);
 
   const styleFeature = useCallback((feature?: Feature) => {
-    const name = (feature?.properties?.shapeName as string) ?? '';
-    const lga  = lgaMap.get(norm(name));
-    const isActive = lga ? filteredIds.has(lga.id) : false;
-
     let fillColor = '#e2e8f0';
-    if (lga && isActive) {
-      if (mapMode === 'gap')     fillColor = gapColour(lga.gap_score ?? 0);
-      if (mapMode === 'density') fillColor = densityColour(lga.ngo_count_verified ?? 0);
-      if (mapMode === 'trust')   fillColor = TRUST_COLOURS[lga.dominant_trust_tier ?? ''] ?? '#e2e8f0';
+    let fillOpacity = 0.15;
+
+    if (viewLevel === 'national') {
+      const stateName = feature?.properties?.NAME_1 || feature?.properties?.name || feature?.properties?.state;
+      const data = stateData.get(stateName);
+      if (data) {
+        fillOpacity = 0.78;
+        if (mapMode === 'gap') {
+          const avgGap = data.gap.reduce((a, b) => a + b, 0) / data.gap.length;
+          fillColor = gapColour(avgGap);
+        } else if (mapMode === 'density') {
+          fillColor = densityColour(data.count / data.lgas);
+        } else if (mapMode === 'funding') {
+          fillColor = fundingColour(data.funding);
+        }
+      }
+    } else {
+      const stateName = feature?.properties?.NAME_1;
+      if (stateName !== selectedState) return { fillOpacity: 0, weight: 0, opacity: 0 };
+
+      const name = (feature?.properties?.shapeName as string) ?? '';
+      const lga  = lgaMap.get(norm(name));
+      const isActive = lga ? filteredIds.has(lga.id) : false;
+
+      if (lga && isActive) {
+        fillOpacity = 0.78;
+        if (mapMode === 'gap')     fillColor = gapColour(lga.gap_score ?? 0);
+        if (mapMode === 'density') fillColor = densityColour(lga.ngo_count_verified ?? 0);
+        if (mapMode === 'trust')   fillColor = TRUST_COLOURS[lga.dominant_trust_tier ?? ''] ?? '#e2e8f0';
+        if (mapMode === 'funding') fillColor = fundingColour(lga.total_funding_usd ?? 0);
+      }
     }
 
-    return { fillColor, fillOpacity: isActive ? 0.78 : 0.15, color: '#94a3b8', weight: 0.5, opacity: 0.6 } as L.PathOptions;
-  }, [lgaMap, filteredIds, mapMode]);
+    return { fillColor, fillOpacity, color: '#94a3b8', weight: 0.5, opacity: 0.6 } as L.PathOptions;
+  }, [lgaMap, filteredIds, mapMode, viewLevel, stateData, selectedState]);
 
   const onEachFeature = useCallback((feature: Feature, layer: L.Layer) => {
-    const name = (feature.properties?.shapeName as string) ?? '';
-    const lga  = lgaMap.get(norm(name));
-    if (!lga) return;
-
     layer.on({
       mouseover(e: L.LeafletMouseEvent) {
         if (window.matchMedia('(pointer: coarse)').matches) return;
         (e.target as L.Path).setStyle({ weight: 2, color: '#10b981', fillOpacity: 0.92 });
         (e.target as L.Path).bringToFront();
-        if (hoveredRef.current !== lga.id.toString()) {
-          hoveredRef.current = lga.id.toString();
-          onHoverLga(lga);
+        
+        if (viewLevel === 'state') {
+          const name = (feature.properties?.shapeName as string) ?? '';
+          const lga  = lgaMap.get(norm(name));
+          if (lga && hoveredRef.current !== lga.id.toString()) {
+            hoveredRef.current = lga.id.toString();
+            onHoverLga(lga);
+          }
         }
       },
       mouseout(e: L.LeafletMouseEvent) {
@@ -179,26 +244,72 @@ function GeoJsonLayer({ geoJson, lgaMap, filteredIds, mapMode, onSelectLga, onHo
         onHoverLga(null);
       },
       click(e: L.LeafletMouseEvent) {
-        onSelectLga(lga);
-        map.fitBounds((e.target as L.Polygon).getBounds(), { padding: [60, 60], maxZoom: 10 });
+        if (viewLevel === 'national') {
+          const stateName = feature.properties?.NAME_1 || feature.properties?.name || feature.properties?.state;
+          setSelectedState(stateName);
+          setViewLevel('state');
+          map.fitBounds((e.target as L.Polygon).getBounds(), { padding: [60, 60] });
+        } else {
+          const name = (feature.properties?.shapeName as string) ?? '';
+          const lga  = lgaMap.get(norm(name));
+          if (lga) onSelectLga(lga);
+        }
       },
     });
-  }, [lgaMap, onHoverLga, onSelectLga, styleFeature, map]);
+  }, [lgaMap, onHoverLga, onSelectLga, styleFeature, map, viewLevel]);
 
   return (
-    <GeoJSON
-      key={`${mapMode}-${lgaMap.size}`}
-      data={geoJson}
-      style={styleFeature}
-      onEachFeature={onEachFeature}
-    />
+    <>
+      {viewLevel === 'national' && stateGeoJson && (
+        <GeoJSON
+          key={`national-${mapMode}`}
+          data={stateGeoJson}
+          style={styleFeature}
+          onEachFeature={onEachFeature}
+        />
+      )}
+      {viewLevel === 'state' && (
+        <GeoJSON
+          key={`state-${selectedState}-${mapMode}`}
+          data={geoJson}
+          style={styleFeature}
+          onEachFeature={onEachFeature}
+        />
+      )}
+      {viewLevel === 'state' && (
+        <div className="absolute top-4 left-4 z-[1000]">
+          <button
+            onClick={() => {
+              setViewLevel('national');
+              setSelectedState(null);
+              map.setView([9.0820, 8.6753], 6);
+            }}
+            className="bg-white border border-[#141414] px-4 py-2 text-xs font-bold uppercase tracking-wider shadow-[4px_4px_0px_0px_rgba(20,20,20,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
+          >
+            ← Back to National
+          </button>
+        </div>
+      )}
+    </>
   );
 }
 
-export default function LeafletMap({ lgas, onSelectLga, onHoverLga, mapMode = 'gap', geoJson, isMobile }: Props) {
-  const lgaMap = new Map<string, LGA>();
-  lgas.forEach(l => lgaMap.set(norm(l.name), l));
-  const filteredIds = new Set(lgas.map(l => l.id));
+export default function LeafletMap({ 
+  lgas, 
+  onSelectLga, 
+  onHoverLga, 
+  mapMode = 'gap', 
+  geoJson, 
+  stateGeoJson,
+  isMobile 
+}: Props) {
+  const lgaMap = useMemo(() => {
+    const map = new Map<string, LGA>();
+    lgas.forEach(l => map.set(norm(l.name), l));
+    return map;
+  }, [lgas]);
+
+  const filteredIds = useMemo(() => new Set(lgas.map(l => l.id)), [lgas]);
 
   return (
     <MapContainer
@@ -213,6 +324,7 @@ export default function LeafletMap({ lgas, onSelectLga, onHoverLga, mapMode = 'g
       {geoJson && (
         <GeoJsonLayer
           geoJson={geoJson}
+          stateGeoJson={stateGeoJson}
           lgaMap={lgaMap}
           filteredIds={filteredIds}
           mapMode={mapMode}

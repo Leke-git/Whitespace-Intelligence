@@ -28,6 +28,13 @@ WHITESPACE is a coordination intelligence platform for civil society. The design
 - **High (0.75):** `#E63946` (Red)
 - **Critical (1.0):** `#6B0504` (Dark Red)
 
+### Funding Visualization Palette (Density)
+- **None:** `#f1f5f9` (Slate 100)
+- **Low:** `#dbeafe` (Blue 100)
+- **Mid:** `#60a5fa` (Blue 400)
+- **High:** `#2563eb` (Blue 600)
+- **Very High:** `#1e3a8a` (Blue 900)
+
 ## Typography
   --font-heading: 'Inter', system-ui, sans-serif
   --font-body:    'Inter', system-ui, sans-serif

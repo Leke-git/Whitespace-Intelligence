@@ -49,7 +49,7 @@ export function BrandLoader({
           cols = 7;
           rows = 3;
           dots = [
-            { r: 0, c: 0 }, { r: 0, c: 6 },
+            { r: 0, c: 0 }, { r: 0, c: 3 }, { r: 0, c: 6 },
             { r: 1, c: 0 }, { r: 1, c: 3 }, { r: 1, c: 6 },
             { r: 2, c: 2 }, { r: 2, c: 4 }
           ];
@@ -57,7 +57,7 @@ export function BrandLoader({
           cols = 5;
           rows = 3;
           dots = [
-            { r: 0, c: 0 }, { r: 0, c: 4 },
+            { r: 0, c: 0 }, { r: 0, c: 2 }, { r: 0, c: 4 },
             { r: 1, c: 0 }, { r: 1, c: 2 }, { r: 1, c: 4 },
             { r: 2, c: 1 }, { r: 2, c: 3 }
           ];
@@ -70,12 +70,12 @@ export function BrandLoader({
               const c = i % cols;
               const isW = dots.some(d => d.r === r && d.c === c);
               
-              // Restore faded circles for background
+              // Remove background dots
               if (!isW) {
                 return (
                   <div 
                     key={i} 
-                    className={`${dotSizes[size]} rounded-full bg-slate-100 mx-auto`} 
+                    className={`${dotSizes[size]} mx-auto`} 
                   />
                 );
               }

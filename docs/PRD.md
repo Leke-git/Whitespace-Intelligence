@@ -1,5 +1,5 @@
 # WHITESPACE — NGO Coordination & Gap Intelligence
-Version 1.0 | 2026-03-23
+Version 1.1 | 2026-03-24
 Status: Confirmed
 
 ## 1. PROBLEM STATEMENT
@@ -16,8 +16,8 @@ WHITESPACE is a coordination and intelligence platform that maps NGO activity de
   - DEVICE: Responsive (Mobile for field updates, Desktop for profile management).
 - **Donor / Partner**:
   - WHO: Funding agencies, government bodies, or strategic partners.
-  - CAN DO: Browse registry, identify high-impact partners, view gap analytics.
-  - CAN SEE: All public NGO data and coordination maps.
+  - CAN DO: Browse registry, identify high-impact partners, view gap analytics, analyze funding distribution.
+  - CAN SEE: All public NGO data, coordination maps, and donor funding heatmaps.
   - DEVICE: Desktop-first.
 - **Platform Admin (App Owner)**:
   - WHO: The WHITESPACE team managing the platform.
@@ -44,6 +44,7 @@ WHITESPACE is a coordination and intelligence platform that maps NGO activity de
 
 ## 6. FEATURES — MVP SCOPE
 - **Coordination Map (P0)**: Interactive map visualizing NGO activity vs. LGA gap scores.
+- **Donor Funding Map (P1)**: Visualization of donor fund distribution based on IATI data.
 - **NGO Registry (P0)**: Searchable directory of verified NGOs with "Proof of Work" pages.
 - **Gap Intelligence (P0)**: AI-driven analysis of service coverage and underserved areas.
 - **NGO Dashboard (P0)**: Profile management, programme logging, and resource uploads.
@@ -53,6 +54,7 @@ WHITESPACE is a coordination and intelligence platform that maps NGO activity de
 - `organisations`: NGO identity, CAC details, trust tier, and branding.
 - `programmes`: Activity details, sector, budget, and beneficiary reach.
 - `lga_gap_scores`: 774 LGAs with computed gap scores based on need vs. coverage.
+- `iati_funding`: Donor funding records disaggregated by LGA and sector.
 - `sectors`: Humanitarian and development sectors (Health, Education, WASH, etc.).
 - `site_settings`: Global configuration for the platform.
 

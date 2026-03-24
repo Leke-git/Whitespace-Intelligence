@@ -10,9 +10,10 @@ interface IntelligenceMapProps {
   lgas: any[];
   onLgaSelect: (lga: any) => void;
   selectedLgaId?: string;
+  mapMode?: 'gap' | 'funding';
 }
 
-export default function IntelligenceMap({ lgas, onLgaSelect, selectedLgaId }: IntelligenceMapProps) {
+export default function IntelligenceMap({ lgas, onLgaSelect, selectedLgaId, mapMode = 'gap' }: IntelligenceMapProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoveredLga, setHoveredLga] = useState<any>(null);
@@ -38,10 +39,17 @@ export default function IntelligenceMap({ lgas, onLgaSelect, selectedLgaId }: In
     const path = d3.geoPath().projection(projection);
 
     // Color scale for Gap Score (0 to 1)
-    // Using a brutalist scale: Slate to Emerald to Red
-    const colorScale = d3.scaleThreshold<number, string>()
+    const gapColorScale = d3.scaleThreshold<number, string>()
       .domain([0.3, 0.6, 0.8, 0.9])
       .range(['#f1f5f9', '#dcfce7', '#fef08a', '#fed7aa', '#fee2e2']);
+
+    // Color scale for Funding (USD)
+    const fundingColorScale = d3.scaleThreshold<number, string>()
+      .domain([10000, 100000, 500000, 1000000])
+      .range(['#f1f5f9', '#dbeafe', '#60a5fa', '#2563eb', '#1e3a8a']);
+
+    const colorScale = mapMode === 'gap' ? gapColorScale : fundingColorScale;
+    const dataKey = mapMode === 'gap' ? 'gap_score' : 'total_funding_usd';
 
     // Fetch Nigeria TopoJSON
     fetch('https://raw.githubusercontent.com/deldersveld/topojson/master/countries/nigeria/nigeria-lga.json')
@@ -60,6 +68,7 @@ export default function IntelligenceMap({ lgas, onLgaSelect, selectedLgaId }: In
             properties: {
               ...f.properties,
               gap_score: lgaMatch?.gap_score || 0,
+              total_funding_usd: lgaMatch?.total_funding_usd || 0,
               db_data: lgaMatch
             }
           };
@@ -71,7 +80,7 @@ export default function IntelligenceMap({ lgas, onLgaSelect, selectedLgaId }: In
           .enter()
           .append('path')
           .attr('d', (d: any) => path(d))
-          .attr('fill', (d: any) => colorScale(d.properties.gap_score))
+          .attr('fill', (d: any) => colorScale(d.properties[dataKey]))
           .attr('stroke', '#1e293b')
           .attr('stroke-width', 0.5)
           .attr('class', 'lga-path cursor-pointer transition-colors duration-200')
@@ -83,7 +92,7 @@ export default function IntelligenceMap({ lgas, onLgaSelect, selectedLgaId }: In
           })
           .on('mouseleave', (event, d: any) => {
             d3.select(event.currentTarget)
-              .attr('fill', colorScale(d.properties.gap_score))
+              .attr('fill', colorScale(d.properties[dataKey]))
               .attr('stroke-width', 0.5);
             setHoveredLga(null);
           })
@@ -104,7 +113,7 @@ export default function IntelligenceMap({ lgas, onLgaSelect, selectedLgaId }: In
         svg.call(zoom);
       });
 
-  }, [lgas, onLgaSelect]);
+  }, [lgas, onLgaSelect, mapMode]);
 
   return (
     <div ref={containerRef} className="relative w-full h-full bg-[#E4E3E0] overflow-hidden border border-[#141414]">
@@ -124,17 +133,31 @@ export default function IntelligenceMap({ lgas, onLgaSelect, selectedLgaId }: In
 
       {/* Legend */}
       <div className="absolute bottom-4 left-4 bg-white border border-[#141414] p-4 shadow-[4px_4px_0px_0px_rgba(20,20,20,1)]">
-        <div className="text-[10px] font-mono uppercase tracking-tighter text-slate-500 mb-2">Gap Score Intensity</div>
+        <div className="text-[10px] font-mono uppercase tracking-tighter text-slate-500 mb-2">
+          {mapMode === 'gap' ? 'Gap Score Intensity' : 'Donor Funding Density'}
+        </div>
         <div className="flex items-center gap-1">
-          {[0, 0.25, 0.5, 0.75, 1].map((val, i) => (
-            <div key={i} className="flex flex-col items-center">
-              <div 
-                className="w-8 h-2 border border-[#141414]" 
-                style={{ backgroundColor: i === 0 ? '#f1f5f9' : i === 1 ? '#dcfce7' : i === 2 ? '#fef08a' : i === 3 ? '#fed7aa' : '#fee2e2' }} 
-              />
-              <span className="text-[8px] font-mono mt-1">{val}</span>
-            </div>
-          ))}
+          {mapMode === 'gap' ? (
+            [0, 0.3, 0.6, 0.8, 1].map((val, i) => (
+              <div key={i} className="flex flex-col items-center">
+                <div 
+                  className="w-8 h-2 border border-[#141414]" 
+                  style={{ backgroundColor: ['#f1f5f9', '#dcfce7', '#fef08a', '#fed7aa', '#fee2e2'][i] }} 
+                />
+                <span className="text-[8px] font-mono mt-1">{val}</span>
+              </div>
+            ))
+          ) : (
+            ['$0', '$10k', '$100k', '$500k', '$1M+'].map((val, i) => (
+              <div key={i} className="flex flex-col items-center">
+                <div 
+                  className="w-8 h-2 border border-[#141414]" 
+                  style={{ backgroundColor: ['#f1f5f9', '#dbeafe', '#60a5fa', '#2563eb', '#1e3a8a'][i] }} 
+                />
+                <span className="text-[8px] font-mono mt-1">{val}</span>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
@@ -162,21 +185,40 @@ export default function IntelligenceMap({ lgas, onLgaSelect, selectedLgaId }: In
                   <span className="text-[10px] font-mono bg-emerald-500 text-black px-1 uppercase">{hoveredLga.NAME_1}</span>
                 </div>
                 <div className="space-y-3">
-                  <div>
-                    <div className="text-[10px] font-mono uppercase opacity-50">Gap Score</div>
-                    <div className="text-2xl font-mono tracking-tighter">{(hoveredLga.gap_score * 100).toFixed(1)}%</div>
-                  </div>
-                  <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-emerald-500 transition-all duration-500" 
-                      style={{ width: `${hoveredLga.gap_score * 100}%` }} 
-                    />
-                  </div>
-                  {hoveredLga.gap_score > 0.8 && (
-                    <div className="flex items-center gap-2 text-red-400 text-xs font-mono animate-pulse">
-                      <AlertTriangle className="w-3 h-3" />
-                      CRITICAL GAP DETECTED
-                    </div>
+                  {mapMode === 'gap' ? (
+                    <>
+                      <div>
+                        <div className="text-[10px] font-mono uppercase opacity-50">Gap Score</div>
+                        <div className="text-2xl font-mono tracking-tighter">{(hoveredLga.gap_score * 100).toFixed(1)}%</div>
+                      </div>
+                      <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-emerald-500 transition-all duration-500" 
+                          style={{ width: `${hoveredLga.gap_score * 100}%` }} 
+                        />
+                      </div>
+                      {hoveredLga.gap_score > 0.8 && (
+                        <div className="flex items-center gap-2 text-red-400 text-xs font-mono animate-pulse">
+                          <AlertTriangle className="w-3 h-3" />
+                          CRITICAL GAP DETECTED
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <div className="text-[10px] font-mono uppercase opacity-50">Donor Funding</div>
+                        <div className="text-2xl font-mono tracking-tighter">
+                          ${(hoveredLga.total_funding_usd || 0).toLocaleString()}
+                        </div>
+                      </div>
+                      <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-blue-500 transition-all duration-500" 
+                          style={{ width: `${Math.min(100, (hoveredLga.total_funding_usd / 1000000) * 100)}%` }} 
+                        />
+                      </div>
+                    </>
                   )}
                 </div>
               </motion.div>
