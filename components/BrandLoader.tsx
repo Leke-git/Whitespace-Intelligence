@@ -70,9 +70,14 @@ export function BrandLoader({
               const c = i % cols;
               const isW = dots.some(d => d.r === r && d.c === c);
               
-              // Remove faded circles for ALL variants
+              // Restore faded circles for background
               if (!isW) {
-                return <div key={i} className={dotSizes[size]} />;
+                return (
+                  <div 
+                    key={i} 
+                    className={`${dotSizes[size]} rounded-full bg-slate-100 mx-auto`} 
+                  />
+                );
               }
 
               return (
