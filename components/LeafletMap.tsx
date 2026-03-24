@@ -5,8 +5,7 @@ import { MapContainer, GeoJSON, ZoomControl, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { Feature, GeoJsonObject } from 'geojson';
-
-export type MapMode = 'gap' | 'density' | 'trust' | 'funding';
+import { getPriorityColor, getCapacityColor, TRUST_COLOURS, MapMode } from '@/lib/map-utils';
 
 export interface LGA {
   id: number;
@@ -22,9 +21,12 @@ export interface LGA {
 
 interface Props {
   lgas: LGA[];
+  programmes: any[];
   onSelectLga: (lga: LGA | null) => void;
   onHoverLga: (lga: LGA | null) => void;
   mapMode?: MapMode;
+  capacityType?: 'ngos' | 'programmes';
+  verifiedOnly?: boolean;
   view?: 'national' | 'lga';
   geoJson?: GeoJsonObject | null;
   stateGeoJson?: GeoJsonObject | null;
@@ -35,46 +37,15 @@ function norm(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-function gapColour(score: number): string {
-  if (score >= 0.8)  return '#7f1d1d';
-  if (score >= 0.6)  return '#b91c1c';
-  if (score >= 0.45) return '#ef4444';
-  if (score >= 0.3)  return '#f97316';
-  if (score >= 0.15) return '#eab308';
-  return '#22c55e';
-}
-
-function densityColour(count: number): string {
-  if (count >= 30) return '#064e3b';
-  if (count >= 20) return '#065f46';
-  if (count >= 12) return '#047857';
-  if (count >= 7)  return '#059669';
-  if (count >= 3)  return '#10b981';
-  if (count >= 1)  return '#6ee7b7';
-  return '#f1f5f9';
-}
-
-function fundingColour(amount: number): string {
-  if (amount >= 1000000) return '#1e3a8a'; // Very High (Blue 900)
-  if (amount >= 500000)  return '#2563eb'; // High (Blue 600)
-  if (amount >= 100000)  return '#60a5fa'; // Mid (Blue 400)
-  if (amount >= 10000)   return '#dbeafe'; // Low (Blue 100)
-  return '#f1f5f9'; // None (Slate 100)
-}
-
-const TRUST_COLOURS: Record<string, string> = {
-  registered: '#3b82f6',
-  verified:   '#8b5cf6',
-  active:     '#10b981',
-  accredited: '#f59e0b',
-};
-
 function GeoJsonLayer({ 
   geoJson, 
   stateGeoJson,
   lgaMap, 
+  programmes,
   filteredIds, 
   mapMode, 
+  capacityType = 'ngos',
+  verifiedOnly = true,
   view = 'national',
   onSelectLga, 
   onHoverLga 
@@ -82,8 +53,11 @@ function GeoJsonLayer({
   geoJson: GeoJsonObject;
   stateGeoJson?: GeoJsonObject | null;
   lgaMap: Map<string, LGA>;
+  programmes: any[];
   filteredIds: Set<number>;
   mapMode: MapMode;
+  capacityType?: 'ngos' | 'programmes';
+  verifiedOnly?: boolean;
   view?: 'national' | 'lga';
   onSelectLga: (lga: LGA | null) => void;
   onHoverLga: (lga: LGA | null) => void;
@@ -98,12 +72,22 @@ function GeoJsonLayer({
       if (!states.has(s)) states.set(s, { gap: [], count: 0, funding: 0, lgas: 0 });
       const d = states.get(s)!;
       d.gap.push(lga.gap_score ?? 0);
-      d.count += lga.ngo_count_verified ?? 0;
+      
+      if (mapMode === 'capacity') {
+        if (capacityType === 'ngos') {
+          d.count += verifiedOnly ? (lga.ngo_count_verified ?? 0) : (lga.ngo_count_total ?? 0);
+        } else {
+          // Count programmes for this LGA
+          const lgaProgs = programmes.filter(p => p.lga_id === lga.id);
+          d.count += lgaProgs.length;
+        }
+      }
+      
       d.funding += lga.total_funding_usd ?? 0;
       d.lgas += 1;
     });
     return states;
-  }, [lgaMap]);
+  }, [lgaMap, mapMode, capacityType, verifiedOnly, programmes]);
 
   useEffect(() => {
     const STATE_LABELS: [number, number, string][] = [
@@ -192,13 +176,11 @@ function GeoJsonLayer({
       const data = stateData.get(stateName);
       if (data) {
         fillOpacity = 0.78;
-        if (mapMode === 'gap') {
+        if (mapMode === 'priority') {
           const avgGap = data.gap.reduce((a, b) => a + b, 0) / data.gap.length;
-          fillColor = gapColour(avgGap);
-        } else if (mapMode === 'density') {
-          fillColor = densityColour(data.count / data.lgas);
-        } else if (mapMode === 'funding') {
-          fillColor = fundingColour(data.funding);
+          fillColor = getPriorityColor(avgGap, data.funding / data.lgas);
+        } else if (mapMode === 'capacity') {
+          fillColor = getCapacityColor(data.count / data.lgas);
         }
       }
     } else {
@@ -208,15 +190,21 @@ function GeoJsonLayer({
 
       if (lga && isActive) {
         fillOpacity = 0.78;
-        if (mapMode === 'gap')     fillColor = gapColour(lga.gap_score ?? 0);
-        if (mapMode === 'density') fillColor = densityColour(lga.ngo_count_verified ?? 0);
-        if (mapMode === 'trust')   fillColor = TRUST_COLOURS[lga.dominant_trust_tier ?? ''] ?? '#e2e8f0';
-        if (mapMode === 'funding') fillColor = fundingColour(lga.total_funding_usd ?? 0);
+        if (mapMode === 'priority') {
+          fillColor = getPriorityColor(lga.gap_score ?? 0, lga.total_funding_usd ?? 0);
+        } else if (mapMode === 'capacity') {
+          if (capacityType === 'ngos') {
+            fillColor = getCapacityColor(verifiedOnly ? (lga.ngo_count_verified ?? 0) : (lga.ngo_count_total ?? 0));
+          } else {
+            const lgaProgs = programmes.filter(p => p.lga_id === lga.id);
+            fillColor = getCapacityColor(lgaProgs.length);
+          }
+        }
       }
     }
 
     return { fillColor, fillOpacity, color: '#94a3b8', weight: 0.5, opacity: 0.6 } as L.PathOptions;
-  }, [lgaMap, filteredIds, mapMode, view, stateData]);
+  }, [lgaMap, filteredIds, mapMode, view, stateData, capacityType, verifiedOnly, programmes]);
 
   const onEachFeature = useCallback((feature: Feature, layer: L.Layer) => {
     layer.on({
@@ -286,6 +274,9 @@ export default function LeafletMap({
   stateGeoJson,
   isMobile 
 }: Props) {
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [hoveredData, setHoveredData] = useState<{ name: string; state?: string; value: string | number } | null>(null);
+
   const lgaMap = useMemo(() => {
     const map = new Map<string, LGA>();
     lgas.forEach(l => map.set(norm(l.name), l));
@@ -294,26 +285,78 @@ export default function LeafletMap({
 
   const filteredIds = useMemo(() => new Set(lgas.map(l => l.id)), [lgas]);
 
+  const handleMouseMove = (e: React.MouseEvent) => {
+    setMousePos({ x: e.clientX, y: e.clientY });
+  };
+
   return (
-    <MapContainer
-      center={[9.082, 8.6753]}
-      zoom={6}
-      style={{ height: '100%', width: '100%', background: '#f8fafc' }}
-      className="subtle-map"
-      zoomControl={false}
-      attributionControl={false}
-    >
-      <ZoomControl position="bottomright" />
-      <GeoJsonLayer
-        geoJson={geoJson as any}
-        stateGeoJson={stateGeoJson}
-        lgaMap={lgaMap}
-        filteredIds={filteredIds}
-        mapMode={mapMode}
-        view={view}
-        onSelectLga={onSelectLga}
-        onHoverLga={onHoverLga}
-      />
-    </MapContainer>
+    <div className="w-full h-full relative" onMouseMove={handleMouseMove}>
+      <MapContainer
+        center={[9.082, 8.6753]}
+        zoom={6}
+        style={{ height: '100%', width: '100%', background: '#f8fafc' }}
+        className="subtle-map"
+        zoomControl={false}
+        attributionControl={false}
+      >
+        <ZoomControl position="bottomright" />
+        <GeoJsonLayer
+          geoJson={geoJson as any}
+          stateGeoJson={stateGeoJson}
+          lgaMap={lgaMap}
+          programmes={programmes}
+          filteredIds={filteredIds}
+          mapMode={mapMode as MapMode}
+          capacityType={capacityType}
+          verifiedOnly={verifiedOnly}
+          view={view}
+          onSelectLga={onSelectLga}
+          onHoverLga={(lga) => {
+            onHoverLga(lga);
+            if (!lga) {
+              setHoveredData(null);
+              return;
+            }
+            let value: string | number = '';
+            if (mapMode === 'priority') {
+              value = `${((lga.gap_score || 0) * 100).toFixed(0)}% Need`;
+            } else if (mapMode === 'capacity') {
+              if (capacityType === 'ngos') {
+                value = `${verifiedOnly ? (lga.ngo_count_verified || 0) : (lga.ngo_count_total || 0)} NGOs`;
+              } else {
+                const lgaProgs = programmes.filter(p => p.lga_id === lga.id);
+                value = `${lgaProgs.length} Programmes`;
+              }
+            }
+            
+            setHoveredData({ name: lga.name, state: lga.state, value });
+          }}
+        />
+      </MapContainer>
+
+      {/* Cursor Tooltip (Ghost) */}
+      {hoveredData && !isMobile && (
+        <div 
+          className="fixed z-[2000] pointer-events-none bg-slate-900/90 backdrop-blur-md text-white px-3 py-2 rounded-lg shadow-xl border border-white/10 flex flex-col gap-0.5"
+          style={{ 
+            left: mousePos.x + 20, 
+            top: mousePos.y - 20,
+            transform: 'translate(0, -50%)'
+          }}
+        >
+          <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 leading-none">
+            {hoveredData.state ? `${hoveredData.state} / ` : ''}{view === 'national' ? 'State' : 'LGA'}
+          </div>
+          <div className="text-sm font-bold leading-tight">{hoveredData.name}</div>
+          <div className="text-xs font-mono opacity-80 mt-1">
+            {mapMode === 'gap' ? 'Gap Score: ' : 
+             mapMode === 'density' ? 'NGOs: ' : 
+             mapMode === 'funding' ? 'Funding: ' : 
+             'Trust: '}
+            <span className="text-white font-bold">{hoveredData.value}</span>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

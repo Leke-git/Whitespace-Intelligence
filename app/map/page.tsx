@@ -14,8 +14,16 @@ import {
 } from 'lucide-react';
 import { BrandLoader } from '@/components/BrandLoader';
 import { motion, AnimatePresence } from 'motion/react';
-import type { MapMode } from '@/components/LeafletMap';
 import type { GeoJsonObject } from 'geojson';
+import { 
+  getPriorityColor, 
+  getCapacityColor, 
+  TRUST_COLOURS, 
+  PRIORITY_THRESHOLDS, 
+  CAPACITY_THRESHOLDS,
+  MapMode 
+} from '@/lib/map-utils';
+import type { LGA } from '@/components/LeafletMap';
 
 // ─── Dynamic import (avoids SSR) ─────────────────────────────────────────────
 
@@ -29,58 +37,22 @@ const LeafletMap = NextDynamic(() => import('@/components/LeafletMap'), {
   ),
 });
 
-// ─── Legend configs (mirrors colour scales in LeafletMap.tsx) ─────────────────
+// ─── Legend configs (mirrors colour scales in map-utils.ts) ─────────────────
 
 const LEGENDS: Record<MapMode, { title: string; items: { label: string; color: string }[] }> = {
-  gap: {
-    title: 'Need Intensity',
-    items: [
-      { label: 'Critical (≥0.8)',  color: '#7f1d1d' },
-      { label: 'High (≥0.6)',      color: '#b91c1c' },
-      { label: 'Elevated (≥0.45)', color: '#ef4444' },
-      { label: 'Moderate (≥0.3)',  color: '#f97316' },
-      { label: 'Low-Mid (≥0.15)', color: '#eab308' },
-      { label: 'Low (<0.15)',     color: '#22c55e' },
-    ],
+  priority: {
+    title: 'Investment Priority',
+    items: PRIORITY_THRESHOLDS.map(t => ({ label: t.label, color: t.color })),
   },
-  density: {
-    title: 'Verified NGOs',
-    items: [
-      { label: '30+',   color: '#064e3b' },
-      { label: '20–29', color: '#065f46' },
-      { label: '12–19', color: '#047857' },
-      { label: '7–11',  color: '#059669' },
-      { label: '3–6',   color: '#10b981' },
-      { label: '1–2',   color: '#6ee7b7' },
-      { label: 'None',  color: '#f1f5f9' },
-    ],
-  },
-  trust: {
-    title: 'Dominant Trust Tier',
-    items: [
-      { label: 'Accredited', color: '#f59e0b' },
-      { label: 'Active',     color: '#10b981' },
-      { label: 'Verified',   color: '#8b5cf6' },
-      { label: 'Registered', color: '#3b82f6' },
-    ],
-  },
-  funding: {
-    title: 'Donor Funding (USD)',
-    items: [
-      { label: '$1M+',     color: '#1e3a8a' },
-      { label: '$500k+',   color: '#2563eb' },
-      { label: '$100k+',   color: '#60a5fa' },
-      { label: '$10k+',    color: '#dbeafe' },
-      { label: 'None',     color: '#f1f5f9' },
-    ],
+  capacity: {
+    title: 'Partner Capacity',
+    items: CAPACITY_THRESHOLDS.map(t => ({ label: t.label, color: t.color })),
   },
 };
 
 const MODE_META: Record<MapMode, { label: string; Icon: React.ElementType }> = {
-  gap:     { label: 'Gap Score',    Icon: BarChart3 },
-  density: { label: 'NGO Density',  Icon: Users },
-  trust:   { label: 'Trust Tier',   Icon: Activity },
-  funding: { label: 'Funding',      Icon: Layers },
+  priority: { label: 'Priority', Icon: Shield },
+  capacity: { label: 'Capacity', Icon: Users },
 };
 
 const SECTORS = ['Health', 'Education', 'WASH', 'Nutrition', 'Protection'];
@@ -103,7 +75,9 @@ export default function MapPage() {
   const [hoveredLga, setHoveredLga]   = useState<any>(null);
   const [searchTerm, setSearchTerm]   = useState('');
   const [selectedState, setSelectedState] = useState('');
-  const [mapMode, setMapMode]         = useState<MapMode>('gap');
+  const [mapMode, setMapMode]         = useState<MapMode>('priority');
+  const [capacityType, setCapacityType] = useState<'ngos' | 'programmes'>('ngos');
+  const [verifiedOnly, setVerifiedOnly] = useState(true);
   const [selectedSectors, setSelectedSectors] = useState<string[]>(SECTORS);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -186,21 +160,37 @@ export default function MapPage() {
   // ── Stats for hovered/selected LGA ────────────────────────────────────────
   const stats = useMemo(() => {
     if (!activeLga) return null;
+
+    // If it's a state aggregation (clicked in national view)
+    if (view === 'national' && activeLga.state && !activeLga.id) {
+      const stateLgas = lgas.filter(l => l.state === activeLga.state);
+      const totalFunding = stateLgas.reduce((sum, l) => sum + (l.total_funding_usd || 0), 0);
+      const avgGap = stateLgas.reduce((sum, l) => sum + (l.gap_score || 0), 0) / stateLgas.length;
+      const totalNgos = stateLgas.reduce((sum, l) => sum + (l.ngo_count_verified || 0), 0);
+      
+      const stateProgCount = stateLgas.reduce((sum, l) => sum + programmes.filter(p => p.lga_id === l.id).length, 0);
+      
+      return {
+        isState: true,
+        name: activeLga.state,
+        funding: totalFunding,
+        gap: avgGap,
+        ngoCount: totalNgos,
+        lgaCount: stateLgas.length,
+        progCount: stateProgCount
+      };
+    }
+
     const lgaLinks = programmes.filter(p => p.lga_id === activeLga.id);
     const uniqueOrgs = new Set(
       lgaLinks
         .map(p => p.programmes?.organisation_id)
         .filter(Boolean)
     ).size;
-    const covered = new Set(lgaLinks.map(p => p.programmes?.sector_id));
+    
     const SECTOR_NAMES: Record<number, string> = {
       1: 'Health', 2: 'Education', 3: 'WASH', 4: 'Nutrition', 5: 'Protection'
     };
-    const coveredNames = new Set(
-      lgaLinks
-        .map(p => SECTOR_NAMES[p.programmes?.sector_id])
-        .filter(Boolean)
-    ).size > 0;
     
     const gaps = ['Health','Education','WASH','Nutrition','Protection']
       .filter(s => {
@@ -209,12 +199,19 @@ export default function MapPage() {
       });
 
     return { 
+      isState: false,
+      name: activeLga.name,
+      state: activeLga.state,
       orgCount: uniqueOrgs, 
       progCount: lgaLinks.length, 
       gaps, 
-      gapCount: gaps.length 
+      gapCount: gaps.length,
+      funding: activeLga.total_funding_usd || 0,
+      gap: activeLga.gap_score || 0,
+      trust: activeLga.dominant_trust_tier,
+      ngoCount: activeLga.ngo_count_verified || 0
     };
-  }, [activeLga, programmes]);
+  }, [activeLga, programmes, lgas, view]);
 
   const states = useMemo(
     () => Array.from(new Set(lgas.map(l => l.state))).sort(),
@@ -323,9 +320,9 @@ export default function MapPage() {
                 {/* Mode switcher */}
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    Visualisation Mode
+                    Visualisation Lens
                   </label>
-                  <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 rounded-2xl">
+                  <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-2xl">
                     {(Object.keys(MODE_META) as MapMode[]).map(mode => {
                       const { label, Icon } = MODE_META[mode];
                       const active = mapMode === mode;
@@ -346,6 +343,53 @@ export default function MapPage() {
                     })}
                   </div>
                 </div>
+
+                {/* Capacity Sub-filters */}
+                <AnimatePresence>
+                  {mapMode === 'capacity' && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-3 overflow-hidden"
+                    >
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Measure By</label>
+                        <div className="flex gap-1 p-1 bg-slate-100 rounded-xl">
+                          <button
+                            onClick={() => setCapacityType('ngos')}
+                            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
+                              capacityType === 'ngos' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                          >
+                            NGOs
+                          </button>
+                          <button
+                            onClick={() => setCapacityType('programmes')}
+                            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
+                              capacityType === 'programmes' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                          >
+                            Programmes
+                          </button>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setVerifiedOnly(!verifiedOnly)}
+                        className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
+                          verifiedOnly 
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-700' 
+                            : 'bg-white border-slate-200 text-slate-500'
+                        }`}
+                      >
+                        <span className="text-[10px] font-bold uppercase tracking-wider">Verified Partners Only</span>
+                        <div className={`w-8 h-4 rounded-full relative transition-colors ${verifiedOnly ? 'bg-emerald-500' : 'bg-slate-200'}`}>
+                          <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${verifiedOnly ? 'left-4.5' : 'left-0.5'}`} />
+                        </div>
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* State & LGA */}
                 <div className="grid grid-cols-2 gap-2">
@@ -499,10 +543,9 @@ export default function MapPage() {
 
           <LeafletMap
             lgas={filteredLgas}
+            programmes={programmes}
             onSelectLga={(lga) => {
               if (view === 'national') {
-                // If we clicked a state in national view, we should ideally zoom in
-                // For now, we'll just toggle to LGA view if we have a state match
                 if (lga && lga.state) {
                   setSelectedState(lga.state);
                   setView('lga');
@@ -513,6 +556,8 @@ export default function MapPage() {
             }}
             onHoverLga={setHoveredLga}
             mapMode={mapMode}
+            capacityType={capacityType}
+            verifiedOnly={verifiedOnly}
             view={view}
             geoJson={geoJson}
             stateGeoJson={stateGeoJson}
@@ -539,13 +584,13 @@ export default function MapPage() {
 
           {/* ── LGA info card / Bottom Sheet ────────────────────────────────────────────── */}
           <AnimatePresence>
-            {activeLga && stats && (
+            {selectedLga && stats && (
               <motion.div
                 key="lga-info-card"
                 drag={isMobile ? "y" : false}
                 dragConstraints={isMobile ? { top: -400, bottom: 300 } : false}
                 dragElastic={0.1}
-                initial={isMobile ? { y: '100%', opacity: 0 } : { y: 10, opacity: 0 }}
+                initial={isMobile ? { y: '100%', opacity: 0 } : { x: 20, opacity: 0 }}
                 animate={isMobile ? { 
                   y: 0, 
                   opacity: 1,
@@ -554,23 +599,23 @@ export default function MapPage() {
                   top: 'auto',
                   width: '100%'
                 } : { 
-                  y: 0, 
+                  x: 0, 
                   opacity: 1,
                   left: isSidebarOpen ? 320 + 24 : 24,
-                  top: 84,
-                  bottom: 'auto',
+                  bottom: 24,
+                  top: 'auto',
                   width: '22rem'
                 }}
-                exit={isMobile ? { y: '100%', opacity: 0 } : { y: 10, opacity: 0 }}
+                exit={isMobile ? { y: '100%', opacity: 0 } : { x: -20, opacity: 0 }}
                 transition={{ 
                   left: { duration: 0.3, ease: 'easeInOut' },
-                  y: { type: 'spring', damping: 25, stiffness: 200 },
+                  x: { type: 'spring', damping: 25, stiffness: 200 },
                   default: { duration: 0.3, ease: [0.23, 1, 0.32, 1] }
                 }}
                 className={`absolute z-[1055] ${isMobile ? 'px-4 pb-4' : ''}`}
               >
-                <div className={`bg-white/90 backdrop-blur-2xl shadow-2xl border border-slate-200 overflow-hidden ${
-                  isMobile ? 'rounded-t-3xl rounded-b-xl' : 'rounded-2xl'
+                <div className={`bg-white/95 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-200/60 overflow-hidden ${
+                  isMobile ? 'rounded-t-3xl rounded-b-xl' : 'rounded-3xl'
                 }`}>
                   {/* Mobile Drag Handle */}
                   {isMobile && (
@@ -579,113 +624,101 @@ export default function MapPage() {
                     </div>
                   )}
 
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={activeLga.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ duration: 0.2, ease: "easeOut" }}
-                    >
-                      {/* Header */}
-                      <div className={`p-5 border-b border-slate-100 ${isMobile ? 'pt-2' : 'bg-slate-50/50'}`}>
-                        <div className="flex justify-between items-start mb-1">
-                          <div className="flex-grow">
-                            <h2 className="text-xl font-bold text-slate-900 leading-tight pr-2 break-words">
-                              {activeLga.name}
-                            </h2>
-                            <p className="text-xs text-slate-500 font-medium">{activeLga.state} State</p>
-                          </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
-                              (activeLga.gap_score ?? 0) > 0.7
-                                ? 'bg-red-100 text-red-700'
-                                : (activeLga.gap_score ?? 0) > 0.4
-                                ? 'bg-amber-100 text-amber-700'
-                                : 'bg-emerald-100 text-emerald-700'
-                            }`}>
-                              {(activeLga.gap_score ?? 0) > 0.7 ? 'Critical'
-                                : (activeLga.gap_score ?? 0) > 0.4 ? 'Elevated' : 'Stable'}
+                  <div className="p-6 space-y-6">
+                    {/* Header */}
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[10px] font-bold uppercase tracking-wider rounded-md border border-emerald-100">
+                            {stats.isState ? 'State Overview' : 'LGA Profile'}
+                          </span>
+                          {!stats.isState && (
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                              {stats.state}
                             </span>
-                            {(selectedLga || isMobile) && (
-                              <button
-                                onClick={() => setSelectedLga(null)}
-                                className="p-1.5 bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            )}
-                          </div>
+                          )}
+                        </div>
+                        <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-none">
+                          {stats.name}
+                        </h2>
+                      </div>
+                      <button 
+                        onClick={() => setSelectedLga(null)}
+                        className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    {/* Hero Metric based on Map Mode */}
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between">
+                      <div>
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                          {mapMode === 'priority' ? 'Need Intensity' : 
+                           capacityType === 'ngos' ? 'NGO Presence' : 'Activity Volume'}
+                        </div>
+                        <div className="text-3xl font-black text-slate-900 leading-none">
+                          {mapMode === 'priority' ? `${(stats.gap * 100).toFixed(0)}%` : 
+                           capacityType === 'ngos' ? stats.ngoCount : stats.progCount}
                         </div>
                       </div>
-
-                      {/* Metrics */}
-                      <div className="p-5 space-y-4">
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-100">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Active NGOs</div>
-                            <div className="text-2xl font-bold text-slate-900">{stats.orgCount}</div>
-                          </div>
-                          <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-100">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Funding (USD)</div>
-                            <div className="text-2xl font-bold text-slate-900">
-                              ${(activeLga.total_funding_usd || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Need bar */}
-                        <div className="space-y-1.5">
-                          <div className="flex justify-between">
-                            <span className="text-xs text-slate-500 font-medium">Need Intensity</span>
-                            <span className="text-xs font-bold text-slate-900">
-                              {((activeLga.gap_score ?? 0) * 100).toFixed(0)}%
-                            </span>
-                          </div>
-                          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                            <motion.div
-                              className={`h-full rounded-full ${
-                                (activeLga.gap_score ?? 0) > 0.7 ? 'bg-red-500'
-                                  : (activeLga.gap_score ?? 0) > 0.4 ? 'bg-orange-400'
-                                  : 'bg-emerald-500'
-                              }`}
-                              initial={{ width: 0 }}
-                              animate={{ width: `${(activeLga.gap_score ?? 0) * 100}%` }}
-                              transition={{ duration: 0.4, ease: 'easeOut' }}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Sector gaps */}
-                        {stats.gaps.length > 0 && (
-                          <div>
-                            <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">
-                              Service Gaps ({stats.gapCount})
-                            </div>
-                            <div className="flex flex-wrap gap-1.5">
-                              {stats.gaps.map(gap => (
-                                <span key={gap} className="flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded-md border border-amber-100">
-                                  <AlertTriangle className="w-3 h-3" />
-                                  {gap}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
+                      <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ 
+                        backgroundColor: mapMode === 'priority' 
+                          ? getPriorityColor(stats.gap, stats.funding / (stats.lgaCount || 1)) 
+                          : getCapacityColor(capacityType === 'ngos' ? stats.ngoCount : stats.progCount)
+                      }}>
+                        {mapMode === 'priority' ? <Shield className="w-6 h-6 text-white" /> : <Activity className="w-6 h-6 text-white" />}
                       </div>
+                    </div>
 
-                      {/* CTA — only when pinned by click or on mobile */}
-                      {(selectedLga || isMobile) && (
-                        <Link
-                          href={`/lga/${activeLga.id}`}
-                          className="flex items-center justify-center gap-2 w-full py-4 bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-colors"
-                        >
-                          View full LGA profile
-                          <ChevronRight className="w-4 h-4" />
-                        </Link>
-                      )}
-                    </motion.div>
-                  </AnimatePresence>
+                    {/* Common Stats Grid */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-4 rounded-2xl border border-slate-100 bg-white shadow-sm">
+                        <div className="flex items-center gap-2 text-slate-400 mb-2">
+                          <Users className="w-3.5 h-3.5" />
+                          <span className="text-[10px] font-bold uppercase tracking-wider">NGOs</span>
+                        </div>
+                        <div className="text-xl font-bold text-slate-900">{stats.ngoCount}</div>
+                        <div className="text-[10px] text-slate-500 font-medium">Verified Partners</div>
+                      </div>
+                      <div className="p-4 rounded-2xl border border-slate-100 bg-white shadow-sm">
+                        <div className="flex items-center gap-2 text-slate-400 mb-2">
+                          <Activity className="w-3.5 h-3.5" />
+                          <span className="text-[10px] font-bold uppercase tracking-wider">Projects</span>
+                        </div>
+                        <div className="text-xl font-bold text-slate-900">{stats.progCount || stats.lgaCount}</div>
+                        <div className="text-[10px] text-slate-500 font-medium">
+                          {stats.isState ? 'LGAs in State' : 'Active Programmes'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Gaps / Missing Sectors */}
+                    {!stats.isState && stats.gaps && stats.gaps.length > 0 && (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Critical Gaps</h3>
+                          <span className="px-2 py-0.5 bg-red-50 text-red-600 text-[10px] font-bold rounded-full">
+                            {stats.gapCount} Missing
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {stats.gaps.map(gap => (
+                            <span key={gap} className="px-3 py-1.5 bg-white border border-red-100 text-red-700 text-[10px] font-bold rounded-xl shadow-sm flex items-center gap-1.5">
+                              <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                              {gap}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Action Button */}
+                    <button className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold text-sm hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 flex items-center justify-center gap-2 group">
+                      View Detailed Intelligence
+                      <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             )}

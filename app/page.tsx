@@ -133,10 +133,10 @@ export default function Home() {
       <footer className="bg-white border-t border-slate-200 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-8">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <BrandLoader size="sm" variant="dots" isStatic={true} />
-              <span className="text-lg font-bold tracking-tight text-slate-900 font-display uppercase">
-                WHITESPACE
+              <span className="text-lg font-black tracking-[-0.02em] text-slate-900 font-brand whitespace-nowrap flex items-baseline">
+                Whitespace<span className="w-1 h-1 rounded-full bg-emerald-600 ml-0.5" />
               </span>
             </div>
             <div className="flex gap-8 text-slate-500 text-sm font-medium">

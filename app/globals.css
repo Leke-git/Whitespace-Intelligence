@@ -19,6 +19,11 @@
   --font-sans: 'Inter', sans-serif;
   --font-display: 'Space Grotesk', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+  --font-brand: 'Outfit', sans-serif;
+}
+
+.font-brand {
+  font-family: var(--font-brand);
 }
 
 body {

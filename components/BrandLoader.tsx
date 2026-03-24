@@ -35,7 +35,8 @@ export function BrandLoader({
     lg: 'w-2'
   };
 
-  const activeColor = 'bg-emerald-600';
+  const emerald600 = '#059669';
+  const whitespace = '#f8fafc';
 
   const renderVariant = () => {
     switch (variant) {
@@ -83,15 +84,23 @@ export function BrandLoader({
               return (
                 <motion.div
                   key={i}
-                  className={`${dotSizes[size]} rounded-full ${activeColor} mx-auto`}
+                  className={`${dotSizes[size]} rounded-full mx-auto`}
+                  style={{ 
+                    backgroundColor: emerald600,
+                    transformStyle: 'preserve-3d'
+                  }}
                   animate={!isStatic ? {
-                    opacity: [0.4, 1, 0.4],
-                    scale: [0.8, 1.1, 0.8]
-                  } : {}}
+                    rotateY: [0, 180, 360],
+                    backgroundColor: [emerald600, whitespace, emerald600],
+                    scale: [1, 0.85, 1]
+                  } : {
+                    backgroundColor: emerald600
+                  }}
                   transition={{
-                    duration: 2,
+                    duration: 3,
                     repeat: Infinity,
-                    delay: (r + c) * 0.1
+                    ease: "easeInOut",
+                    delay: (r + c) * 0.2
                   }}
                 />
               );

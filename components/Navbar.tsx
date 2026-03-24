@@ -44,10 +44,10 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center flex-shrink-0">
-            <Link href="/" className="flex items-center gap-2 mr-8">
+            <Link href="/" className="flex items-center gap-3 mr-8 group">
               <BrandLoader size="sm" variant="dots" isStatic={true} />
-              <span className="text-xl font-bold tracking-tight text-slate-900 font-display whitespace-nowrap">
-                WHITESPACE
+              <span className="text-xl font-black tracking-[-0.02em] text-slate-900 font-brand whitespace-nowrap group-hover:text-emerald-600 transition-colors flex items-baseline">
+                Whitespace<span className="w-1.5 h-1.5 rounded-full bg-emerald-600 ml-0.5" />
               </span>
             </Link>
           </div>
