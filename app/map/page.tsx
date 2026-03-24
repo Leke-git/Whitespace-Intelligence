@@ -513,7 +513,9 @@ export default function MapPage() {
             }}
             onHoverLga={setHoveredLga}
             mapMode={mapMode}
-            geoJson={currentGeoJson}
+            view={view}
+            geoJson={geoJson}
+            stateGeoJson={stateGeoJson}
             isMobile={isMobile}
           />
 
