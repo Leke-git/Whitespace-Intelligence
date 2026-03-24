@@ -7,7 +7,6 @@ import 'leaflet/dist/leaflet.css';
 import type { Feature, GeoJsonObject } from 'geojson';
 
 export type MapMode = 'gap' | 'density' | 'trust' | 'funding';
-export type ViewLevel = 'national' | 'state';
 
 export interface LGA {
   id: number;
@@ -26,6 +25,7 @@ interface Props {
   onSelectLga: (lga: LGA | null) => void;
   onHoverLga: (lga: LGA | null) => void;
   mapMode?: MapMode;
+  view?: 'national' | 'lga';
   geoJson?: GeoJsonObject | null;
   stateGeoJson?: GeoJsonObject | null;
   isMobile?: boolean;
@@ -75,6 +75,7 @@ function GeoJsonLayer({
   lgaMap, 
   filteredIds, 
   mapMode, 
+  view = 'national',
   onSelectLga, 
   onHoverLga 
 }: {
@@ -83,12 +84,11 @@ function GeoJsonLayer({
   lgaMap: Map<string, LGA>;
   filteredIds: Set<number>;
   mapMode: MapMode;
+  view?: 'national' | 'lga';
   onSelectLga: (lga: LGA | null) => void;
   onHoverLga: (lga: LGA | null) => void;
 }) {
   const map = useMap();
-  const [viewLevel, setViewLevel] = useState<ViewLevel>('national');
-  const [selectedState, setSelectedState] = useState<string | null>(null);
 
   // Aggregate data to state level
   const stateData = useMemo(() => {
@@ -148,7 +148,7 @@ function GeoJsonLayer({
 
     const markers: L.Marker[] = [];
 
-    if (viewLevel === 'national') {
+    if (view === 'national') {
       STATE_LABELS.forEach(([lng, lat, name]) => {
         const icon = L.divIcon({
           className: '',
@@ -179,7 +179,7 @@ function GeoJsonLayer({
     return () => {
       markers.forEach(m => map.removeLayer(m));
     };
-  }, [map, viewLevel]);
+  }, [map, view]);
 
   const hoveredRef = useRef<string | null>(null);
 
@@ -187,7 +187,7 @@ function GeoJsonLayer({
     let fillColor = '#e2e8f0';
     let fillOpacity = 0.15;
 
-    if (viewLevel === 'national') {
+    if (view === 'national') {
       const stateName = feature?.properties?.NAME_1 || feature?.properties?.name || feature?.properties?.state;
       const data = stateData.get(stateName);
       if (data) {
@@ -202,10 +202,7 @@ function GeoJsonLayer({
         }
       }
     } else {
-      const stateName = feature?.properties?.NAME_1;
-      if (stateName !== selectedState) return { fillOpacity: 0, weight: 0, opacity: 0 };
-
-      const name = (feature?.properties?.shapeName as string) ?? '';
+      const name = (feature?.properties?.LGA as string) || (feature?.properties?.name as string) || (feature?.properties?.shapeName as string) || '';
       const lga  = lgaMap.get(norm(name));
       const isActive = lga ? filteredIds.has(lga.id) : false;
 
@@ -219,7 +216,7 @@ function GeoJsonLayer({
     }
 
     return { fillColor, fillOpacity, color: '#94a3b8', weight: 0.5, opacity: 0.6 } as L.PathOptions;
-  }, [lgaMap, filteredIds, mapMode, viewLevel, stateData, selectedState]);
+  }, [lgaMap, filteredIds, mapMode, view, stateData]);
 
   const onEachFeature = useCallback((feature: Feature, layer: L.Layer) => {
     layer.on({
@@ -228,8 +225,8 @@ function GeoJsonLayer({
         (e.target as L.Path).setStyle({ weight: 2, color: '#10b981', fillOpacity: 0.92 });
         (e.target as L.Path).bringToFront();
         
-        if (viewLevel === 'state') {
-          const name = (feature.properties?.shapeName as string) ?? '';
+        if (view === 'lga') {
+          const name = (feature.properties?.LGA as string) || (feature.properties?.name as string) || (feature.properties?.shapeName as string) || '';
           const lga  = lgaMap.get(norm(name));
           if (lga && hoveredRef.current !== lga.id.toString()) {
             hoveredRef.current = lga.id.toString();
@@ -244,23 +241,22 @@ function GeoJsonLayer({
         onHoverLga(null);
       },
       click(e: L.LeafletMouseEvent) {
-        if (viewLevel === 'national') {
+        if (view === 'national') {
           const stateName = feature.properties?.NAME_1 || feature.properties?.name || feature.properties?.state;
-          setSelectedState(stateName);
-          setViewLevel('state');
-          map.fitBounds((e.target as L.Polygon).getBounds(), { padding: [60, 60] });
+          // We pass a dummy LGA object with the state name so the parent can handle the zoom/view switch
+          onSelectLga({ state: stateName } as any);
         } else {
-          const name = (feature.properties?.shapeName as string) ?? '';
+          const name = (feature.properties?.LGA as string) || (feature.properties?.name as string) || (feature.properties?.shapeName as string) || '';
           const lga  = lgaMap.get(norm(name));
           if (lga) onSelectLga(lga);
         }
       },
     });
-  }, [lgaMap, onHoverLga, onSelectLga, styleFeature, map, viewLevel]);
+  }, [lgaMap, onHoverLga, onSelectLga, styleFeature, view]);
 
   return (
     <>
-      {viewLevel === 'national' && stateGeoJson && (
+      {view === 'national' && stateGeoJson && (
         <GeoJSON
           key={`national-${mapMode}`}
           data={stateGeoJson}
@@ -268,27 +264,13 @@ function GeoJsonLayer({
           onEachFeature={onEachFeature}
         />
       )}
-      {viewLevel === 'state' && (
+      {view === 'lga' && geoJson && (
         <GeoJSON
-          key={`state-${selectedState}-${mapMode}`}
+          key={`lga-${mapMode}`}
           data={geoJson}
           style={styleFeature}
           onEachFeature={onEachFeature}
         />
-      )}
-      {viewLevel === 'state' && (
-        <div className="absolute top-4 left-4 z-[1000]">
-          <button
-            onClick={() => {
-              setViewLevel('national');
-              setSelectedState(null);
-              map.setView([9.0820, 8.6753], 6);
-            }}
-            className="bg-white border border-[#141414] px-4 py-2 text-xs font-bold uppercase tracking-wider shadow-[4px_4px_0px_0px_rgba(20,20,20,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
-          >
-            ← Back to National
-          </button>
-        </div>
       )}
     </>
   );
@@ -299,6 +281,7 @@ export default function LeafletMap({
   onSelectLga, 
   onHoverLga, 
   mapMode = 'gap', 
+  view = 'national',
   geoJson, 
   stateGeoJson,
   isMobile 
@@ -321,17 +304,16 @@ export default function LeafletMap({
       attributionControl={false}
     >
       <ZoomControl position="bottomright" />
-      {geoJson && (
-        <GeoJsonLayer
-          geoJson={geoJson}
-          stateGeoJson={stateGeoJson}
-          lgaMap={lgaMap}
-          filteredIds={filteredIds}
-          mapMode={mapMode}
-          onSelectLga={onSelectLga}
-          onHoverLga={onHoverLga}
-        />
-      )}
+      <GeoJsonLayer
+        geoJson={geoJson as any}
+        stateGeoJson={stateGeoJson}
+        lgaMap={lgaMap}
+        filteredIds={filteredIds}
+        mapMode={mapMode}
+        view={view}
+        onSelectLga={onSelectLga}
+        onHoverLga={onHoverLga}
+      />
     </MapContainer>
   );
 }
