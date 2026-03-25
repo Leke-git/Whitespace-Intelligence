@@ -265,10 +265,13 @@ function GeoJsonLayer({
 }
 
 export default function LeafletMap({ 
-  lgas, 
+  lgas,
+  programmes,
   onSelectLga, 
   onHoverLga, 
-  mapMode = 'priority', 
+  mapMode = 'priority',
+  capacityType = 'ngos',
+  verifiedOnly = true,
   view = 'national',
   geoJson, 
   stateGeoJson,
@@ -349,10 +352,7 @@ export default function LeafletMap({
           </div>
           <div className="text-sm font-bold leading-tight">{hoveredData.name}</div>
           <div className="text-xs font-mono opacity-80 mt-1">
-            {mapMode === 'gap' ? 'Gap Score: ' : 
-             mapMode === 'density' ? 'NGOs: ' : 
-             mapMode === 'funding' ? 'Funding: ' : 
-             'Trust: '}
+            {mapMode === 'capacity' ? 'Capacity: ' : 'Priority: '}
             <span className="text-white font-bold">{hoveredData.value}</span>
           </div>
         </div>
