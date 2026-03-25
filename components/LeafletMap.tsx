@@ -268,7 +268,7 @@ export default function LeafletMap({
   lgas, 
   onSelectLga, 
   onHoverLga, 
-  mapMode = 'gap', 
+  mapMode = 'priority', 
   view = 'national',
   geoJson, 
   stateGeoJson,
