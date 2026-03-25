@@ -1,6 +1,6 @@
 import 'leaflet/dist/leaflet.css';
 import type { Metadata } from "next";
-import { Inter, Space_Grotesk, JetBrains_Mono, Outfit } from "next/font/google";
+import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -11,11 +11,6 @@ const inter = Inter({
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-display",
-});
-
-const outfit = Outfit({
-  subsets: ["latin"],
-  variable: "--font-brand",
 });
 
 const jetbrainsMono = JetBrains_Mono({
@@ -34,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} ${outfit.variable}`}>
+    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable}`}>
       <body className="min-h-screen flex flex-col">
         {children}
       </body>

@@ -46,8 +46,8 @@ export default function Navbar() {
           <div className="flex items-center flex-shrink-0">
             <Link href="/" className="flex items-center gap-3 mr-8 group">
               <BrandLoader size="sm" variant="dots" isStatic={true} />
-              <span className="text-xl font-black tracking-[-0.02em] text-slate-900 font-brand whitespace-nowrap group-hover:text-emerald-600 transition-colors flex items-baseline">
-                Whitespace<span className="w-1.5 h-1.5 rounded-full bg-emerald-600 ml-0.5" />
+              <span className="text-xl font-bold tracking-tight text-slate-900 font-display uppercase whitespace-nowrap group-hover:text-emerald-600 transition-colors">
+                Whitespace
               </span>
             </Link>
           </div>
