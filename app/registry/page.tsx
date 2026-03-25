@@ -153,10 +153,10 @@ export default function RegistryPage() {
   };
 
   return (
-    <main className="h-screen bg-slate-50 flex flex-col overflow-hidden">
+    <main className="h-screen bg-slate-50 flex flex-col">
       <Navbar />
 
-      <div className="flex-grow relative overflow-hidden">
+      <div className="flex-grow relative min-h-0">
         <AnimatePresence>
           {isMobile && isSidebarOpen && (
             <motion.div
@@ -169,51 +169,26 @@ export default function RegistryPage() {
           )}
         </AnimatePresence>
 
-        {/* Sidebar Toggle Button */}
-        <motion.div
-          animate={{ 
-            left: isMobile 
-              ? 'auto' 
-              : (isSidebarOpen ? 320 + 24 : 24),
-            right: isMobile ? 24 : 'auto',
-            top: isMobile && isSidebarOpen ? 16 : 24
-          }}
-          transition={{ duration: 0.3, ease: 'easeInOut' }}
-          className="absolute z-[1060] flex items-center gap-2"
-        >
-          <button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className={`p-2.5 bg-white/90 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-all text-slate-600 ${
-              isMobile && isSidebarOpen ? 'ring-1 ring-slate-200/50' : ''
-            }`}
-            title={isSidebarOpen ? 'Collapse Sidebar' : 'Open Sidebar'}
-          >
-            {isSidebarOpen ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
-          </button>
-        </motion.div>
-
         <motion.aside
           initial={false}
           animate={{ x: isSidebarOpen ? 0 : -320 }}
           transition={{ duration: 0.3, ease: 'easeInOut' }}
-          className="absolute top-0 left-0 w-80 h-full bg-white/80 backdrop-blur-xl border-r border-slate-200 flex flex-col z-[1050] shadow-2xl"
+          className="absolute top-0 left-0 w-[320px] max-w-[66%] sm:w-80 h-full bg-white/80 backdrop-blur-xl border-r border-slate-200 flex flex-col z-[1050] shadow-2xl"
         >
+          {/* Sidebar Toggle Button - Now inside the sidebar to move with it */}
+          <div className="absolute top-6 left-full ml-4 z-[1060]">
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className={`p-2.5 bg-white/90 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-all text-slate-600 ${
+                isMobile && isSidebarOpen ? 'ring-1 ring-slate-200/50' : ''
+              }`}
+              title={isSidebarOpen ? 'Collapse Sidebar' : 'Open Sidebar'}
+            >
+              {isSidebarOpen ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+            </button>
+          </div>
+
           <div className="flex-grow overflow-y-auto p-5 space-y-5">
-            <div className={`flex items-center justify-between mb-2 ${isMobile ? 'pr-12' : ''}`}>
-              <h2 className="text-xl font-bold text-slate-900 uppercase tracking-tight">Filters</h2>
-            </div>
-
-            <div className="relative group">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
-              <input
-                type="text"
-                placeholder="Search NGOs..."
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-              />
-            </div>
-
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">State</label>
@@ -242,6 +217,17 @@ export default function RegistryPage() {
                   ))}
                 </select>
               </div>
+            </div>
+
+            <div className="relative group">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+              <input
+                type="text"
+                placeholder="Search NGOs..."
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+              />
             </div>
 
             <div className="space-y-2">
@@ -325,8 +311,8 @@ export default function RegistryPage() {
           </div>
         </motion.aside>
 
-        <div className="flex-grow relative overflow-hidden bg-slate-50">
-          <div className={`h-full overflow-y-auto transition-all duration-300 ${isSidebarOpen && !isMobile ? 'pl-80' : ''}`}>
+        <div className="flex-grow relative bg-slate-50 h-full">
+          <div className={`h-full overflow-y-auto transition-all duration-300 ${isSidebarOpen && !isMobile ? 'pl-80' : isSidebarOpen && isMobile ? 'pl-[max(50%,280px)]' : ''}`} style={{ paddingLeft: isSidebarOpen && !isMobile ? '320px' : isSidebarOpen && isMobile ? 'min(50%, 280px)' : '0' }}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
               {loading ? (
                 <div className="flex flex-col items-center justify-center py-20">

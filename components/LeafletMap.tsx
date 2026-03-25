@@ -24,6 +24,7 @@ interface Props {
   programmes: any[];
   onSelectLga: (lga: LGA | null) => void;
   onHoverLga: (lga: LGA | null) => void;
+  onViewChange?: (view: 'national' | 'lga') => void;
   mapMode?: MapMode;
   capacityType?: 'ngos' | 'programmes';
   verifiedOnly?: boolean;
@@ -31,6 +32,7 @@ interface Props {
   geoJson?: GeoJsonObject | null;
   stateGeoJson?: GeoJsonObject | null;
   isMobile?: boolean;
+  selectedState?: string;
 }
 
 function norm(s: string): string {
@@ -88,6 +90,14 @@ function GeoJsonLayer({
     });
     return states;
   }, [lgaMap, mapMode, capacityType, verifiedOnly, programmes]);
+
+  const stateOverlayStyle = {
+    color: '#475569',
+    weight: 1.5,
+    opacity: 0.4,
+    fillOpacity: 0,
+    interactive: false
+  };
 
   useEffect(() => {
     const STATE_LABELS: [number, number, string][] = [
@@ -244,6 +254,15 @@ function GeoJsonLayer({
 
   return (
     <>
+      {/* State Overlay - Always visible in LGA view for context */}
+      {view === 'lga' && stateGeoJson && (
+        <GeoJSON
+          key="state-overlay"
+          data={stateGeoJson}
+          style={stateOverlayStyle}
+        />
+      )}
+
       {view === 'national' && stateGeoJson && (
         <GeoJSON
           key={`national-${mapMode}`}
@@ -264,18 +283,57 @@ function GeoJsonLayer({
   );
 }
 
+function ZoomHandler({ onViewChange, view }: { onViewChange?: (view: 'national' | 'lga') => void, view: 'national' | 'lga' }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!onViewChange) return;
+    const handleZoom = () => {
+      const zoom = map.getZoom();
+      const newView = zoom >= 8 ? 'lga' : 'national';
+      if (newView !== view) {
+        onViewChange(newView);
+      }
+    };
+    map.on('zoomend', handleZoom);
+    return () => {
+      map.off('zoomend', handleZoom);
+    };
+  }, [map, view, onViewChange]);
+  return null;
+}
+
+function MapController({ selectedState, stateGeoJson, view }: { selectedState?: string, stateGeoJson?: GeoJsonObject | null, view: string }) {
+  const map = useMap();
+  useEffect(() => {
+    if (selectedState && stateGeoJson && view === 'lga') {
+       const features = (stateGeoJson as any).features;
+       const feature = features.find((f: any) => {
+         const name = f.properties?.NAME_1 || f.properties?.name || f.properties?.state;
+         return name === selectedState;
+       });
+       if (feature) {
+         const bounds = L.geoJSON(feature).getBounds();
+         map.flyToBounds(bounds, { padding: [40, 40], duration: 1.5 });
+       }
+    }
+  }, [selectedState, stateGeoJson, view, map]);
+  return null;
+}
+
 export default function LeafletMap({ 
   lgas,
   programmes,
   onSelectLga, 
   onHoverLga, 
+  onViewChange,
   mapMode = 'priority',
   capacityType = 'ngos',
   verifiedOnly = true,
   view = 'national',
   geoJson, 
   stateGeoJson,
-  isMobile 
+  isMobile,
+  selectedState
 }: Props) {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [hoveredData, setHoveredData] = useState<{ name: string; state?: string; value: string | number } | null>(null);
@@ -303,6 +361,8 @@ export default function LeafletMap({
         attributionControl={false}
       >
         <ZoomControl position="bottomright" />
+        <ZoomHandler onViewChange={onViewChange} view={view} />
+        <MapController selectedState={selectedState} stateGeoJson={stateGeoJson} view={view} />
         <GeoJsonLayer
           geoJson={geoJson as any}
           stateGeoJson={stateGeoJson}

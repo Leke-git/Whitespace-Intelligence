@@ -266,57 +266,38 @@ export default function MapPage() {
 
       <div className="flex-grow relative overflow-hidden">
         {/* ── Sidebar ────────────────────────────────────────────────────────── */}
-        <AnimatePresence initial={false}>
-          {isSidebarOpen && (
-            <motion.aside
-              initial={{ x: -320 }}
-              animate={{ x: 0 }}
-              exit={{ x: -320 }}
-              transition={{ duration: 0.3, ease: 'easeInOut' }}
-              className="absolute top-0 left-0 w-80 h-full bg-white/80 backdrop-blur-xl border-r border-slate-200 flex flex-col z-[1050] shadow-2xl overflow-hidden"
+        <AnimatePresence>
+          {isMobile && isSidebarOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsSidebarOpen(false)}
+              className="absolute inset-0 bg-slate-900/20 backdrop-blur-sm z-[1040]"
+            />
+          )}
+        </AnimatePresence>
+
+        <motion.aside
+          initial={false}
+          animate={{ x: isSidebarOpen ? 0 : -320 }}
+          transition={{ duration: 0.3, ease: 'easeInOut' }}
+          className="absolute top-0 left-0 w-[320px] max-w-[66%] sm:w-80 h-full bg-white/80 backdrop-blur-xl border-r border-slate-200 flex flex-col z-[1050] shadow-2xl overflow-visible"
+        >
+          {/* Sidebar Toggle Button - Now inside the sidebar to move with it */}
+          <div className="absolute top-6 left-full ml-4 z-[1060]">
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className={`p-2.5 bg-white/90 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-all text-slate-600 ${
+                isMobile && isSidebarOpen ? 'ring-1 ring-slate-200/50' : ''
+              }`}
+              title={isSidebarOpen ? "Collapse Sidebar" : "Open Sidebar"}
             >
-              <div className="flex-grow overflow-y-auto p-5 space-y-5">
-                <div className={`space-y-2 ${isMobile ? 'pr-12' : ''}`}>
-                  <h2 className="text-xl font-bold text-slate-900 uppercase tracking-tight">Map Filters</h2>
-                </div>
+              {isSidebarOpen ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+            </button>
+          </div>
 
-                {/* Search Input - Moved back to Sidepanel */}
-                <div className="relative group">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
-                  <input
-                    type="text"
-                    placeholder="Search LGA or State..."
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                  />
-                </div>
-
-                {/* View Switcher */}
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    Map View
-                  </label>
-                  <div className="flex gap-1 p-1 bg-slate-100 rounded-xl">
-                    <button
-                      onClick={() => setView('national')}
-                      className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
-                        view === 'national' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                      }`}
-                    >
-                      National (States)
-                    </button>
-                    <button
-                      onClick={() => setView('lga')}
-                      className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
-                        view === 'lga' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                      }`}
-                    >
-                      Local (LGAs)
-                    </button>
-                  </div>
-                </div>
-
+          <div className="flex-grow overflow-y-auto p-5 space-y-5">
                 {/* Mode switcher */}
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
@@ -390,6 +371,18 @@ export default function MapPage() {
                     </motion.div>
                   )}
                 </AnimatePresence>
+
+                {/* Search Input - Moved back to Sidepanel */}
+                <div className="relative group">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                  <input
+                    type="text"
+                    placeholder="Search LGA or State..."
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                  />
+                </div>
 
                 {/* State & LGA */}
                 <div className="grid grid-cols-2 gap-2">
@@ -511,35 +504,11 @@ export default function MapPage() {
                   </div>
                 )}
               </div>
-
             </motion.aside>
-          )}
-        </AnimatePresence>
 
         {/* ── Map pane ────────────────────────────────────────────────────────── */}
         <div className="w-full h-full relative bg-slate-100 overflow-hidden">
-          {/* Sidebar Toggle Button Group */}
-          <motion.div
-            animate={{ 
-              left: isMobile 
-                ? 'auto' 
-                : (isSidebarOpen ? 320 + 24 : 24),
-              right: isMobile ? 24 : 'auto',
-              top: isMobile && isSidebarOpen ? 16 : 24
-            }}
-            transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="absolute z-[1060] flex items-center gap-2"
-          >
-            <button
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className={`p-2.5 bg-white/90 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-all text-slate-600 ${
-                isMobile && isSidebarOpen ? 'ring-1 ring-slate-200/50' : ''
-              }`}
-              title={isSidebarOpen ? "Collapse Sidebar" : "Open Sidebar"}
-            >
-              {isSidebarOpen ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
-            </button>
-          </motion.div>
+          {/* Sidebar Toggle Button Group - Removed from here as it's now inside the sidebar */}
 
           <LeafletMap
             lgas={filteredLgas}
@@ -555,6 +524,7 @@ export default function MapPage() {
               }
             }}
             onHoverLga={setHoveredLga}
+            onViewChange={setView}
             mapMode={mapMode}
             capacityType={capacityType}
             verifiedOnly={verifiedOnly}
@@ -562,6 +532,7 @@ export default function MapPage() {
             geoJson={geoJson}
             stateGeoJson={stateGeoJson}
             isMobile={isMobile}
+            selectedState={selectedState}
           />
 
           {/* ── Legend (Desktop only, moved above zoom controls) ────────────────── */}
@@ -601,7 +572,7 @@ export default function MapPage() {
                 } : { 
                   x: 0, 
                   opacity: 1,
-                  left: isSidebarOpen ? 320 + 24 : 24,
+                  left: isSidebarOpen ? (isMobile ? 'min(50%, 280px)' : '320px') : '24px',
                   bottom: 24,
                   top: 'auto',
                   width: '22rem'
