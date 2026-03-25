@@ -14,6 +14,18 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**', // This allows any path under the hostname
       },
+      {
+        protocol: 'https',
+        hostname: 'logo.clearbit.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'unavatar.io',
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
   output: 'standalone',

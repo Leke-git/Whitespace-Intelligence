@@ -4,13 +4,43 @@ export const dynamic = 'force-dynamic';
 
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
-import { Search, Map as MapIcon, ShieldCheck, Zap } from 'lucide-react';
+import { Plus, Minus, Map as MapIcon, ShieldCheck, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { BrandLoader } from '@/components/BrandLoader';
 
-import { motion } from 'motion/react';
+import Footer from '@/components/Footer';
+import Image from 'next/image';
+
+import { motion, AnimatePresence } from 'motion/react';
+import { useState } from 'react';
 
 export default function Home() {
+  const partners = [
+    { name: "National Bureau of Statistics", logo: "https://unavatar.io/clearbit/nigerianstat.gov.ng" },
+    { name: "USAID Nigeria", logo: "https://unavatar.io/clearbit/usaid.gov" },
+    { name: "Bill & Melinda Gates Foundation", logo: "https://unavatar.io/clearbit/gatesfoundation.org" },
+    { name: "UN OCHA", logo: "https://unavatar.io/clearbit/unocha.org" },
+    { name: "Save the Children", logo: "https://unavatar.io/clearbit/savethechildren.org" },
+    { name: "Dangote Group", logo: "https://unavatar.io/clearbit/dangote.com" },
+    { name: "World Bank", logo: "https://unavatar.io/clearbit/worldbank.org" },
+    { name: "European Union", logo: "https://unavatar.io/clearbit/europa.eu" }
+  ];
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+  const faqs = [
+    {
+      question: "What is Whitespace?",
+      answer: "Whitespace is Nigeria's central coordination intelligence platform for civil society. We map NGO programmes across all 774 LGAs to identify service gaps."
+    },
+    {
+      question: "How do I register my NGO?",
+      answer: "To register, click the 'Register NGO' button above. You will need to provide your CAC registration details and institutional information."
+    },
+    {
+      question: "Is the data on Whitespace verified?",
+      answer: "Yes. Every organisation on our platform undergoes a verification process that includes CAC documentation checks and institutional vetting."
+    }
+  ];
   const features = [
     {
       title: "Verified Registry",
@@ -54,6 +84,26 @@ export default function Home() {
     <main className="flex-grow">
       <Navbar />
       <Hero />
+
+      {/* Partner Spotlight Ribbon */}
+      <div className="py-12 bg-white border-y border-slate-100 overflow-hidden">
+        <div className="flex whitespace-nowrap animate-scroll">
+          {[...partners, ...partners].map((partner, idx) => (
+            <div key={idx} className="flex items-center gap-4 px-12 transition-all hover:scale-105">
+              <div className="relative w-32 h-12">
+                <Image 
+                  src={partner.logo} 
+                  alt={partner.name}
+                  fill
+                  className="object-contain"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+              <span className="text-slate-400 font-bold text-xs uppercase tracking-widest">{partner.name}</span>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Features Section */}
       <section className="py-24 bg-white">
@@ -129,27 +179,91 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 py-12">
+      {/* Video Section */}
+      <section className="py-24 bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-8">
-            <div className="flex items-center gap-3">
-              <BrandLoader size="sm" variant="dots" isStatic={true} />
-              <span className="text-lg font-bold tracking-tight text-slate-900 font-display uppercase">
-                Whitespace
-              </span>
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-slate-900 mb-4">How to Use Whitespace</h2>
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+              A quick guide to navigating the platform, mapping your programmes, and accessing coordination intelligence.
+            </p>
+          </div>
+          
+          <div className="max-w-4xl mx-auto">
+            <div className="relative aspect-video rounded-[2.5rem] overflow-hidden shadow-2xl border-8 border-white group">
+              <div className="absolute inset-0 bg-slate-900/40 group-hover:bg-slate-900/20 transition-all flex items-center justify-center z-10">
+                <button className="w-20 h-20 bg-emerald-600 text-white rounded-full flex items-center justify-center hover:scale-110 transition-transform shadow-xl shadow-emerald-600/40">
+                  <div className="w-0 h-0 border-t-[12px] border-t-transparent border-l-[20px] border-l-white border-b-[12px] border-b-transparent ml-2" />
+                </button>
+              </div>
+              <Image 
+                src="https://picsum.photos/seed/tutorial/1280/720" 
+                alt="Tutorial Thumbnail"
+                fill
+                className="object-cover"
+                referrerPolicy="no-referrer"
+              />
             </div>
-            <div className="flex gap-8 text-slate-500 text-sm font-medium">
-              <Link href="/privacy" className="hover:text-emerald-600">Privacy Policy</Link>
-              <Link href="/terms" className="hover:text-emerald-600">Terms of Service</Link>
-              <Link href="/contact" className="hover:text-emerald-600">Contact Support</Link>
-            </div>
-            <div className="text-slate-400 text-sm">
-              © 2026 Whitespace Coordination Intelligence. All rights reserved.
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
+              {[
+                { title: "1. Register & Verify", desc: "Create your institutional profile and upload CAC documents for verification." },
+                { title: "2. Log Programmes", desc: "Map your active interventions across 774 LGAs with precise sector data." },
+                { title: "3. Access Intelligence", desc: "Use the Coordination Map to identify gaps and optimize your impact." }
+              ].map((step, i) => (
+                <div key={i} className="text-center">
+                  <h4 className="font-bold text-slate-900 mb-2">{step.title}</h4>
+                  <p className="text-sm text-slate-500 leading-relaxed">{step.desc}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
-      </footer>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-24 bg-white">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-slate-900 mb-4">Frequently Asked Questions</h2>
+            <p className="text-slate-600">Quick answers to common questions about Whitespace.</p>
+          </div>
+          <div className="space-y-4">
+            {faqs.map((faq, idx) => (
+              <div key={idx} className="border border-slate-200 rounded-2xl overflow-hidden">
+                <button
+                  onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
+                  className="w-full p-6 text-left flex items-center justify-between hover:bg-slate-50 transition-colors"
+                >
+                  <span className="font-bold text-slate-900">{faq.question}</span>
+                  <span className="text-emerald-600 transition-all duration-300">
+                    {openFaq === idx ? <Minus size={20} /> : <Plus size={20} />}
+                  </span>
+                </button>
+                <AnimatePresence>
+                  {openFaq === idx && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="px-6 pb-6 text-slate-600 text-sm leading-relaxed"
+                    >
+                      {faq.answer}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ))}
+          </div>
+          <div className="mt-12 text-center">
+            <Link href="/faq" className="text-emerald-600 font-bold hover:underline">
+              View all FAQs
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <Footer />
     </main>
   );
 }

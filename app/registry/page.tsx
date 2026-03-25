@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Navbar from '@/components/Navbar';
 import { supabase } from '@/lib/supabase';
 import { Search, Filter, ShieldCheck, ExternalLink, MapPin, Users, ChevronLeft, ChevronRight, X, Check } from 'lucide-react';
@@ -50,6 +50,7 @@ export default function RegistryPage() {
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -57,6 +58,12 @@ export default function RegistryPage() {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [currentPage]);
 
   const fetchOrgs = useCallback(async () => {
     setLoading(true);
@@ -312,8 +319,12 @@ export default function RegistryPage() {
         </motion.aside>
 
         <div className="flex-grow relative bg-slate-50 h-full">
-          <div className={`h-full overflow-y-auto transition-all duration-300 ${isSidebarOpen && !isMobile ? 'pl-80' : isSidebarOpen && isMobile ? 'pl-[max(50%,280px)]' : ''}`} style={{ paddingLeft: isSidebarOpen && !isMobile ? '320px' : isSidebarOpen && isMobile ? 'min(50%, 280px)' : '0' }}>
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div 
+            ref={scrollContainerRef}
+            className={`h-full overflow-y-auto transition-all duration-300 ${isSidebarOpen && !isMobile ? 'pl-80' : isSidebarOpen && isMobile ? 'pl-[max(50%,280px)]' : ''}`} 
+            style={{ paddingLeft: isSidebarOpen && !isMobile ? '320px' : isSidebarOpen && isMobile ? 'min(50%, 280px)' : '0' }}
+          >
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative min-h-full">
               {loading ? (
                 <div className="flex flex-col items-center justify-center py-20">
                   <BrandLoader size="lg" />
@@ -321,13 +332,15 @@ export default function RegistryPage() {
                 </div>
               ) : filteredOrgs.length > 0 ? (
                 <>
-                  <motion.div
-                    variants={containerVariants}
-                    initial="hidden"
-                    animate="show"
-                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
-                  >
-                    <AnimatePresence mode="popLayout">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={currentPage}
+                      variants={containerVariants}
+                      initial="hidden"
+                      animate="show"
+                      exit="hidden"
+                      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+                    >
                       {paginatedOrgs.map((org) => (
                         <motion.div
                           key={org.id}
@@ -386,8 +399,8 @@ export default function RegistryPage() {
                           </div>
                         </motion.div>
                       ))}
-                    </AnimatePresence>
-                  </motion.div>
+                    </motion.div>
+                  </AnimatePresence>
 
                   {totalPages > 1 && (
                     <div className="mt-16 flex items-center justify-center gap-4">
