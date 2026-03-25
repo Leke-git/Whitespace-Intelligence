@@ -504,7 +504,7 @@ export default function MapPage() {
                     </p>
                     <button
                       className="mt-3 text-xs font-bold text-amber-900 underline"
-                      onClick={() => setMapMode('gap')}
+                      onClick={() => setMapMode('priority')}
                     >
                       View on map →
                     </button>
