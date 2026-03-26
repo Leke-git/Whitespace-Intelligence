@@ -12,6 +12,7 @@ import Footer from '@/components/Footer';
 import Image from 'next/image';
 
 import { motion, AnimatePresence } from 'motion/react';
+import { PartnerLogo } from '@/components/PartnerLogo';
 import { useState } from 'react';
 
 export default function Home() {
@@ -90,15 +91,11 @@ export default function Home() {
         <div className="flex whitespace-nowrap animate-scroll">
           {[...partners, ...partners].map((partner, idx) => (
             <div key={idx} className="flex items-center gap-4 px-12 transition-all hover:scale-105">
-              <div className="relative w-32 h-12">
-                <Image 
-                  src={partner.logo} 
-                  alt={partner.name}
-                  fill
-                  className="object-contain"
-                  referrerPolicy="no-referrer"
-                />
-              </div>
+              <PartnerLogo 
+                name={partner.name} 
+                logo={partner.logo} 
+                className="w-32 h-12" 
+              />
               <span className="text-slate-400 font-bold text-xs uppercase tracking-widest">{partner.name}</span>
             </div>
           ))}

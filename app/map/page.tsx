@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { BrandLoader } from '@/components/BrandLoader';
 import { motion, AnimatePresence } from 'motion/react';
+import { PartnerLogo } from '@/components/PartnerLogo';
 import type { GeoJsonObject } from 'geojson';
 import { 
   getPriorityColor, 
@@ -454,7 +455,7 @@ export default function MapPage() {
                 </div>
 
                 {/* Summary stats */}
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2">
                   <div className="p-3 bg-white/40 rounded-xl border border-slate-100">
                     <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Showing</div>
                     <div className="text-lg font-bold text-slate-900">{filteredLgas.length}</div>

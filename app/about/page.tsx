@@ -3,6 +3,7 @@
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { motion } from 'motion/react';
+import { PartnerLogo } from '@/components/PartnerLogo';
 import { Users, Target, Shield, Globe, Linkedin, Twitter, Mail } from 'lucide-react';
 import Image from 'next/image';
 
@@ -156,15 +157,11 @@ export default function AboutPage() {
                 transition={{ delay: idx * 0.05 }}
                 className="bg-white p-6 rounded-2xl border border-slate-200 flex items-center justify-center transition-all group"
               >
-                <div className="relative w-full aspect-[2/1]">
-                  <Image 
-                    src={partner.logo} 
-                    alt={partner.name}
-                    fill
-                    className="object-contain group-hover:scale-110 transition-transform"
-                    referrerPolicy="no-referrer"
-                  />
-                </div>
+                <PartnerLogo 
+                  name={partner.name} 
+                  logo={partner.logo} 
+                  className="w-full aspect-[2/1] group-hover:scale-110 transition-transform" 
+                />
               </motion.div>
             ))}
           </div>

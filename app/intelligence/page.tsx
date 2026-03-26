@@ -59,7 +59,7 @@ export default function IntelligencePage() {
   const [activeSectorTab, setActiveSectorTab] = useState('All');
 
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    const checkMobile = () => setIsMobile(window.innerWidth < 1024);
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -173,17 +173,15 @@ export default function IntelligencePage() {
 
         <motion.aside
           initial={false}
-          animate={{ x: isSidebarOpen ? 0 : -320 }}
+          animate={{ x: isSidebarOpen ? 0 : (isMobile ? -280 : -320) }}
           transition={{ duration: 0.3, ease: 'easeInOut' }}
-          className="absolute top-0 left-0 w-[320px] max-w-[66%] sm:w-80 h-full bg-white/80 backdrop-blur-xl border-r border-slate-200 flex flex-col z-[1050] shadow-2xl"
+          className={`absolute top-0 left-0 ${isMobile ? 'w-[280px]' : 'w-80'} h-full bg-white/80 backdrop-blur-xl border-r border-slate-200 flex flex-col z-[1050] shadow-2xl`}
         >
-          {/* Sidebar Toggle Button - Now inside the sidebar to move with it */}
-          <div className="absolute top-6 left-full ml-4 z-[1060]">
+          {/* Sidebar Toggle Button */}
+          <div className="absolute top-6 left-full z-[1060]">
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className={`p-2.5 bg-white/90 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-all text-slate-600 ${
-                isMobile && isSidebarOpen ? 'ring-1 ring-slate-200/50' : ''
-              }`}
+              className="p-2.5 bg-white/90 backdrop-blur-xl rounded-r-xl shadow-lg border-y border-r border-slate-200 hover:bg-slate-50 transition-all text-slate-600"
               title={isSidebarOpen ? 'Collapse Sidebar' : 'Open Sidebar'}
             >
               {isSidebarOpen ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
@@ -306,44 +304,37 @@ export default function IntelligencePage() {
               </div>
             </div>
 
-            <div className="pt-6 border-t border-slate-100">
-              <div className="grid grid-cols-3 gap-1 sm:gap-1.5">
-                <div className="bg-white p-1.5 sm:p-3 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center text-center">
-                  <div className="w-5 h-5 sm:w-7 sm:h-7 bg-red-50 rounded-lg flex items-center justify-center mb-1">
-                    <AlertTriangle className="text-red-600 w-2.5 sm:w-3.5 h-2.5 sm:h-3.5" />
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center text-center">
+                  <div className="w-6 h-6 bg-red-50 rounded-lg flex items-center justify-center mb-1">
+                    <AlertTriangle className="text-red-600 w-3 h-3" />
                   </div>
-                  <div className="text-[10px] sm:text-sm font-bold text-slate-900 leading-none mb-0.5">
+                  <div className="text-xs font-bold text-slate-900 leading-none mb-0.5">
                     <AnimatedCounter value={stats.criticalGaps} />
                   </div>
-                  <div className="text-[6px] sm:text-[8px] text-slate-400 font-bold uppercase leading-tight">Gaps</div>
+                  <div className="text-[8px] text-slate-400 font-bold uppercase leading-tight">Gaps</div>
                 </div>
 
-                <div className="bg-white p-1.5 sm:p-3 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center text-center">
-                  <div className="w-5 h-5 sm:w-7 sm:h-7 bg-emerald-50 rounded-lg flex items-center justify-center mb-1">
-                    <TrendingUp className="text-emerald-600 w-2.5 sm:w-3.5 h-2.5 sm:h-3.5" />
+                <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center text-center">
+                  <div className="w-6 h-6 bg-emerald-50 rounded-lg flex items-center justify-center mb-1">
+                    <TrendingUp className="text-emerald-600 w-3 h-3" />
                   </div>
-                  <div className="text-[10px] sm:text-sm font-bold text-slate-900 leading-none mb-0.5">
+                  <div className="text-xs font-bold text-slate-900 leading-none mb-0.5">
                     <AnimatedCounter value={stats.avgGapScore} suffix="%" />
                   </div>
-                  <div className="text-[6px] sm:text-[8px] text-slate-400 font-bold uppercase leading-tight">Avg Gap</div>
-                </div>
-
-                <div className="bg-white p-1.5 sm:p-3 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center text-center">
-                  <div className="w-5 h-5 sm:w-7 sm:h-7 bg-blue-50 rounded-lg flex items-center justify-center mb-1">
-                    <MapPin className="text-blue-600 w-2.5 sm:w-3.5 h-2.5 sm:h-3.5" />
-                  </div>
-                  <div className="text-[10px] sm:text-sm font-bold text-slate-900 leading-none mb-0.5">
-                    <AnimatedCounter value={stats.totalLGAs} />
-                  </div>
-                  <div className="text-[6px] sm:text-[8px] text-slate-400 font-bold uppercase leading-tight">LGAs</div>
+                  <div className="text-[8px] text-slate-400 font-bold uppercase leading-tight">Avg Gap</div>
                 </div>
               </div>
             </div>
-          </div>
-        </motion.aside>
+          </motion.aside>
 
-        <div className="flex-grow relative overflow-hidden bg-slate-50">
-          <div className={`h-full overflow-y-auto transition-all duration-300 ${isSidebarOpen && !isMobile ? 'pl-80' : isSidebarOpen && isMobile ? 'pl-[max(50%,280px)]' : ''}`} style={{ paddingLeft: isSidebarOpen && !isMobile ? '320px' : isSidebarOpen && isMobile ? 'min(50%, 280px)' : '0' }}>
+        {/* Main Content Area */}
+        <div 
+          className={`absolute inset-0 bg-slate-50 transition-all duration-300 z-0 ${
+            isSidebarOpen && !isMobile ? 'pl-80' : ''
+          }`}
+        >
+          <div className="h-full overflow-y-auto">
             <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12 space-y-12">
               
               {/* Bento Dashboard Section */}
@@ -661,6 +652,6 @@ export default function IntelligencePage() {
         </div>
       </div>
     </div>
-  </main>
+    </main>
   );
 }
