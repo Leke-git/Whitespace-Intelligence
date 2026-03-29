@@ -180,13 +180,13 @@ export default function RegistryPage() {
           initial={false}
           animate={{ x: isSidebarOpen ? 0 : -320 }}
           transition={{ duration: 0.3, ease: 'easeInOut' }}
-          className="absolute top-0 left-0 w-[320px] max-w-[66%] sm:w-80 h-full bg-white/80 backdrop-blur-xl border-r border-slate-200 flex flex-col z-[1050] shadow-2xl"
+          className="absolute top-0 left-0 w-[320px] max-w-[66%] sm:w-80 h-full bg-white/80 backdrop-blur-md border-r border-slate-200 flex flex-col z-[1050] shadow-2xl"
         >
-          {/* Sidebar Toggle Button - Now inside the sidebar to move with it */}
-          <div className="absolute top-6 left-full ml-4 z-[1060]">
+          {/* Sidebar Toggle Button */}
+          <div className="absolute top-6 left-full z-[1060]">
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className={`p-2.5 bg-white/90 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-all text-slate-600 ${
+              className={`p-2.5 bg-white/90 backdrop-blur-md rounded-r-xl shadow-lg border-y border-r border-slate-200 hover:bg-slate-50 transition-all text-slate-600 ${
                 isMobile && isSidebarOpen ? 'ring-1 ring-slate-200/50' : ''
               }`}
               title={isSidebarOpen ? 'Collapse Sidebar' : 'Open Sidebar'}

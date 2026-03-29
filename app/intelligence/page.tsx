@@ -175,13 +175,13 @@ export default function IntelligencePage() {
           initial={false}
           animate={{ x: isSidebarOpen ? 0 : (isMobile ? -280 : -320) }}
           transition={{ duration: 0.3, ease: 'easeInOut' }}
-          className={`absolute top-0 left-0 ${isMobile ? 'w-[280px]' : 'w-80'} h-full bg-white/80 backdrop-blur-xl border-r border-slate-200 flex flex-col z-[1050] shadow-2xl`}
+          className={`absolute top-0 left-0 ${isMobile ? 'w-[280px]' : 'w-80'} h-full bg-white/80 backdrop-blur-md border-r border-slate-200 flex flex-col z-[1050] shadow-2xl`}
         >
           {/* Sidebar Toggle Button */}
           <div className="absolute top-6 left-full z-[1060]">
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="p-2.5 bg-white/90 backdrop-blur-xl rounded-r-xl shadow-lg border-y border-r border-slate-200 hover:bg-slate-50 transition-all text-slate-600"
+              className="p-2.5 bg-white/90 backdrop-blur-md rounded-r-xl shadow-lg border-y border-r border-slate-200 hover:bg-slate-50 transition-all text-slate-600"
               title={isSidebarOpen ? 'Collapse Sidebar' : 'Open Sidebar'}
             >
               {isSidebarOpen ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}

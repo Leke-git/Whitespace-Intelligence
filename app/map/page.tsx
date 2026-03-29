@@ -283,13 +283,13 @@ export default function MapPage() {
           initial={false}
           animate={{ x: isSidebarOpen ? 0 : -320 }}
           transition={{ duration: 0.3, ease: 'easeInOut' }}
-          className="absolute top-0 left-0 w-[320px] max-w-[66%] sm:w-80 h-full bg-white/80 backdrop-blur-xl border-r border-slate-200 flex flex-col z-[1050] shadow-2xl overflow-visible"
+          className="absolute top-0 left-0 w-[320px] max-w-[66%] sm:w-80 h-full bg-white/80 backdrop-blur-md border-r border-slate-200 flex flex-col z-[1050] shadow-2xl overflow-visible"
         >
-          {/* Sidebar Toggle Button - Now inside the sidebar to move with it */}
-          <div className="absolute top-6 left-full ml-4 z-[1060]">
+          {/* Sidebar Toggle Button */}
+          <div className="absolute top-6 left-full z-[1060]">
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className={`p-2.5 bg-white/90 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-all text-slate-600 ${
+              className={`p-2.5 bg-white/90 backdrop-blur-md rounded-r-xl shadow-lg border-y border-r border-slate-200 hover:bg-slate-50 transition-all text-slate-600 ${
                 isMobile && isSidebarOpen ? 'ring-1 ring-slate-200/50' : ''
               }`}
               title={isSidebarOpen ? "Collapse Sidebar" : "Open Sidebar"}
@@ -537,7 +537,7 @@ export default function MapPage() {
           />
 
           {/* ── Legend (Desktop only, moved above zoom controls) ────────────────── */}
-          <div className="hidden md:block absolute bottom-6 right-20 bg-white/80 backdrop-blur-xl p-4 rounded-2xl shadow-xl border border-slate-200 z-[999] min-w-[170px]">
+          <div className="hidden md:block absolute bottom-6 right-20 bg-white/80 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-slate-200 z-[999] min-w-[170px]">
             <div className="flex items-center gap-1.5 mb-3">
               <ModeIcon className="w-3.5 h-3.5 text-slate-400" />
               <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
@@ -586,7 +586,7 @@ export default function MapPage() {
                 }}
                 className={`absolute z-[1055] ${isMobile ? 'px-4 pb-4' : ''}`}
               >
-                <div className={`bg-white/95 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-200/60 overflow-hidden ${
+                <div className={`bg-white/95 backdrop-blur-md shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-200/60 overflow-hidden ${
                   isMobile ? 'rounded-t-3xl rounded-b-xl' : 'rounded-3xl'
                 }`}>
                   {/* Mobile Drag Handle */}

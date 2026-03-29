@@ -70,7 +70,8 @@ function GeoJsonLayer({
   const stateData = useMemo(() => {
     const states = new Map<string, { gap: number[], count: number, funding: number, lgas: number }>();
     lgaMap.forEach(lga => {
-      const s = lga.state;
+      const s = norm(lga.state || '');
+      if (!s) return;
       if (!states.has(s)) states.set(s, { gap: [], count: 0, funding: 0, lgas: 0 });
       const d = states.get(s)!;
       d.gap.push(lga.gap_score ?? 0);
@@ -182,8 +183,10 @@ function GeoJsonLayer({
     let fillOpacity = 0.15;
 
     if (view === 'national') {
-      const stateName = feature?.properties?.NAME_1 || feature?.properties?.name || feature?.properties?.state;
-      const data = stateData.get(stateName);
+      const props = feature?.properties || {};
+      const stateName = props.NAME_1 || props.name || props.state || props.statename || props.NAME_0;
+      const data = stateData.get(norm(stateName || ''));
+      
       if (data) {
         fillOpacity = 0.78;
         if (mapMode === 'priority') {
@@ -192,6 +195,9 @@ function GeoJsonLayer({
         } else if (mapMode === 'capacity') {
           fillColor = getCapacityColor(data.count / data.lgas);
         }
+      } else {
+        // If no data match, still show a base color for boundaries
+        fillOpacity = 0.2;
       }
     } else {
       const name = (feature?.properties?.LGA as string) || (feature?.properties?.name as string) || (feature?.properties?.shapeName as string) || '';
@@ -265,7 +271,7 @@ function GeoJsonLayer({
 
       {view === 'national' && stateGeoJson && (
         <GeoJSON
-          key={`national-${mapMode}`}
+          key={`national-${mapMode}-${stateData.size}`}
           data={stateGeoJson}
           style={styleFeature}
           onEachFeature={onEachFeature}
