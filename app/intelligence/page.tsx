@@ -91,20 +91,46 @@ export default function IntelligencePage() {
       }));
       setLgas(enrichedLgas);
 
-      const mappedData: GapAnalysis[] = (enrichedLgas || []).map((item: any) => ({
-        id: item.id,
-        lga_name: item.name || 'Unknown LGA',
-        state: item.state,
-        sector: (item.primary_needs && item.primary_needs.length > 0) ? item.primary_needs[0] : 'General',
-        gap_score: parseFloat(item.gap_score),
-        is_critical_gap: parseFloat(item.gap_score) > 0.8,
-        duplication_risk: parseFloat(item.gap_score) < 0.3 ? 'High' : parseFloat(item.gap_score) < 0.6 ? 'Medium' : 'Low',
-        summary: `Gap score of ${(parseFloat(item.gap_score) * 100).toFixed(0)}% identified in ${item.name || 'this LGA'}. Primary needs include ${item.primary_needs?.join(', ') || 'various sectors'}.`,
-        recommendation: parseFloat(item.gap_score) > 0.8
-          ? 'Immediate intervention required to address critical service gaps. Coordinate with state emergency management.'
-          : 'Monitor situation and coordinate with existing partners to optimize resource allocation.',
-        created_at: item.updated_at
-      }));
+      const mappedData: GapAnalysis[] = (enrichedLgas || []).map((item: any) => {
+        const gapPercent = (parseFloat(item.gap_score) * 100).toFixed(0);
+        const needs = item.primary_needs?.join(', ') || 'essential services';
+        const isCritical = parseFloat(item.gap_score) > 0.8;
+        
+        // Humanized Nigerian-context summaries
+        const summaries = [
+          `Current assessment shows a significant ${gapPercent}% gap in ${item.name}. Our people here are primarily lacking support in ${needs}.`,
+          `The situation in ${item.name} (${item.state} State) is concerning, with a ${gapPercent}% service deficit. ${needs.charAt(0).toUpperCase() + needs.slice(1)} needs are currently unmet.`,
+          `Data indicates that ${item.name} is currently underserved. We're seeing a ${gapPercent}% gap, specifically affecting ${needs}.`
+        ];
+        
+        // Culturally relevant recommendations
+        const recommendations = isCritical 
+          ? [
+              `Immediate "all hands on deck" required. We must mobilize partners to ${item.name} now to address these critical ${needs} gaps before the situation worsens.`,
+              `Critical alert for ${item.name}. Coordination with local community leaders and state authorities is urgent to bridge this ${gapPercent}% gap in ${needs}.`,
+              `Emergency intervention needed. This is a high-priority zone where our collective action can save lives and restore ${needs} services.`
+            ]
+          : [
+              `Steady progress, but let's not relax. We should continue monitoring ${item.name} and ensure our resources for ${needs} are being used efficiently.`,
+              `Good opportunity for strategic alignment. Let's coordinate with active partners in ${item.name} to maintain coverage and prevent any new gaps from forming.`,
+              `Situation is stable but requires watchful eyes. Focus on sustainability of ${needs} programmes to keep the gap score low.`
+            ];
+
+        const randomIdx = Math.floor(Math.random() * 3);
+
+        return {
+          id: item.id,
+          lga_name: item.name || 'Unknown LGA',
+          state: item.state,
+          sector: (item.primary_needs && item.primary_needs.length > 0) ? item.primary_needs[0] : 'General',
+          gap_score: parseFloat(item.gap_score),
+          is_critical_gap: isCritical,
+          duplication_risk: parseFloat(item.gap_score) < 0.3 ? 'High' : parseFloat(item.gap_score) < 0.6 ? 'Medium' : 'Low',
+          summary: summaries[randomIdx],
+          recommendation: recommendations[randomIdx],
+          created_at: item.updated_at
+        };
+      });
       setAnalyses(mappedData);
     }
     setLoading(false);
@@ -166,7 +192,7 @@ export default function IntelligencePage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsSidebarOpen(false)}
-              className="absolute inset-0 bg-slate-900/20 backdrop-blur-sm z-[1040]"
+              className="absolute inset-0 bg-slate-900/10 backdrop-blur-[2px] z-[1040]"
             />
           )}
         </AnimatePresence>
@@ -175,7 +201,7 @@ export default function IntelligencePage() {
           initial={false}
           animate={{ x: isSidebarOpen ? 0 : (isMobile ? -280 : -320) }}
           transition={{ duration: 0.3, ease: 'easeInOut' }}
-          className={`absolute top-0 left-0 ${isMobile ? 'w-[280px]' : 'w-80'} h-full bg-white/80 backdrop-blur-md border-r border-slate-200 flex flex-col z-[1050] shadow-2xl`}
+          className={`absolute top-0 left-0 ${isMobile ? 'w-[280px]' : 'w-80'} h-full bg-white/90 backdrop-blur-md border-r border-slate-200 flex flex-col z-[1050] shadow-xl`}
         >
           {/* Sidebar Toggle Button */}
           <div className="absolute top-6 left-full z-[1060]">

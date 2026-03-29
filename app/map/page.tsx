@@ -140,7 +140,7 @@ export default function MapPage() {
       });
 
     // Fetch State GeoJSON for national view
-    fetch('https://raw.githubusercontent.com/chrieke/geojson-nigeria/master/nigeria_states.geojson')
+    fetch('https://raw.githubusercontent.com/wmgeolab/geoBoundaries/main/releaseData/gbOpen/NGA/ADM1/geoBoundaries-NGA-ADM1.geojson')
       .then(r => {
         if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
         return r.json();
@@ -274,7 +274,7 @@ export default function MapPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsSidebarOpen(false)}
-              className="absolute inset-0 bg-slate-900/20 backdrop-blur-sm z-[1040]"
+              className="absolute inset-0 bg-slate-900/10 backdrop-blur-[2px] z-[1040]"
             />
           )}
         </AnimatePresence>
@@ -283,7 +283,7 @@ export default function MapPage() {
           initial={false}
           animate={{ x: isSidebarOpen ? 0 : -320 }}
           transition={{ duration: 0.3, ease: 'easeInOut' }}
-          className="absolute top-0 left-0 w-[320px] max-w-[66%] sm:w-80 h-full bg-white/80 backdrop-blur-md border-r border-slate-200 flex flex-col z-[1050] shadow-2xl overflow-visible"
+          className="absolute top-0 left-0 w-[320px] max-w-[66%] sm:w-80 h-full bg-white/90 backdrop-blur-md border-r border-slate-200 flex flex-col z-[1050] shadow-xl overflow-visible"
         >
           {/* Sidebar Toggle Button */}
           <div className="absolute top-6 left-full z-[1060]">

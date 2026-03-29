@@ -42,6 +42,7 @@ function norm(s: string): string {
 function GeoJsonLayer({ 
   geoJson, 
   stateGeoJson,
+  lgas,
   lgaMap, 
   programmes,
   filteredIds, 
@@ -54,6 +55,7 @@ function GeoJsonLayer({
 }: {
   geoJson: GeoJsonObject;
   stateGeoJson?: GeoJsonObject | null;
+  lgas: LGA[];
   lgaMap: Map<string, LGA>;
   programmes: any[];
   filteredIds: Set<number>;
@@ -69,7 +71,9 @@ function GeoJsonLayer({
   // Aggregate data to state level
   const stateData = useMemo(() => {
     const states = new Map<string, { gap: number[], count: number, funding: number, lgas: number }>();
-    lgaMap.forEach(lga => {
+    
+    // Use the full lgas array instead of lgaMap to ensure we get all data
+    lgas.forEach(lga => {
       const s = norm(lga.state || '');
       if (!s) return;
       if (!states.has(s)) states.set(s, { gap: [], count: 0, funding: 0, lgas: 0 });
@@ -80,7 +84,6 @@ function GeoJsonLayer({
         if (capacityType === 'ngos') {
           d.count += verifiedOnly ? (lga.ngo_count_verified ?? 0) : (lga.ngo_count_total ?? 0);
         } else {
-          // Count programmes for this LGA
           const lgaProgs = programmes.filter(p => p.lga_id === lga.id);
           d.count += lgaProgs.length;
         }
@@ -90,7 +93,7 @@ function GeoJsonLayer({
       d.lgas += 1;
     });
     return states;
-  }, [lgaMap, mapMode, capacityType, verifiedOnly, programmes]);
+  }, [lgas, mapMode, capacityType, verifiedOnly, programmes]);
 
   const stateOverlayStyle = {
     color: '#475569',
@@ -184,11 +187,12 @@ function GeoJsonLayer({
 
     if (view === 'national') {
       const props = feature?.properties || {};
-      const stateName = props.NAME_1 || props.name || props.state || props.statename || props.NAME_0;
+      // Robust state name matching for geoBoundaries and other common formats
+      const stateName = props.shapeName || props.NAME_1 || props.name || props.state || props.statename || props.NAME_0;
       const data = stateData.get(norm(stateName || ''));
       
       if (data) {
-        fillOpacity = 0.78;
+        fillOpacity = 0.85; // Slightly more opaque for better visibility
         if (mapMode === 'priority') {
           const avgGap = data.gap.reduce((a, b) => a + b, 0) / data.gap.length;
           fillColor = getPriorityColor(avgGap, data.funding / data.lgas);
@@ -196,8 +200,8 @@ function GeoJsonLayer({
           fillColor = getCapacityColor(data.count / data.lgas);
         }
       } else {
-        // If no data match, still show a base color for boundaries
-        fillOpacity = 0.2;
+        fillOpacity = 0.3; // Base opacity for states without data
+        fillColor = '#cbd5e1';
       }
     } else {
       const name = (feature?.properties?.LGA as string) || (feature?.properties?.name as string) || (feature?.properties?.shapeName as string) || '';
@@ -205,7 +209,7 @@ function GeoJsonLayer({
       const isActive = lga ? filteredIds.has(lga.id) : false;
 
       if (lga && isActive) {
-        fillOpacity = 0.78;
+        fillOpacity = 0.85;
         if (mapMode === 'priority') {
           fillColor = getPriorityColor(lga.gap_score ?? 0, lga.total_funding_usd ?? 0);
         } else if (mapMode === 'capacity') {
@@ -219,7 +223,7 @@ function GeoJsonLayer({
       }
     }
 
-    return { fillColor, fillOpacity, color: '#94a3b8', weight: 0.5, opacity: 0.6 } as L.PathOptions;
+    return { fillColor, fillOpacity, color: '#64748b', weight: 1, opacity: 0.8 } as L.PathOptions;
   }, [lgaMap, filteredIds, mapMode, view, stateData, capacityType, verifiedOnly, programmes]);
 
   const onEachFeature = useCallback((feature: Feature, layer: L.Layer) => {
@@ -246,7 +250,8 @@ function GeoJsonLayer({
       },
       click(e: L.LeafletMouseEvent) {
         if (view === 'national') {
-          const stateName = feature.properties?.NAME_1 || feature.properties?.name || feature.properties?.state;
+          const props = feature.properties || {};
+          const stateName = props.shapeName || props.NAME_1 || props.name || props.state;
           // We pass a dummy LGA object with the state name so the parent can handle the zoom/view switch
           onSelectLga({ state: stateName } as any);
         } else {
@@ -356,11 +361,17 @@ export default function LeafletMap({
     setMousePos({ x: e.clientX, y: e.clientY });
   };
 
+  const mapKey = useMemo(() => {
+    // Force re-render when view or data changes significantly
+    return `${view}-${lgas.length}-${stateGeoJson ? 's' : 'no-s'}-${geoJson ? 'l' : 'no-l'}`;
+  }, [view, lgas.length, stateGeoJson, geoJson]);
+
   return (
     <div className="w-full h-full relative" onMouseMove={handleMouseMove}>
       <MapContainer
+        key={mapKey}
         center={[9.082, 8.6753]}
-        zoom={6}
+        zoom={view === 'national' ? 6 : 8}
         style={{ height: '100%', width: '100%', background: '#f8fafc' }}
         className="subtle-map"
         zoomControl={false}
@@ -372,6 +383,7 @@ export default function LeafletMap({
         <GeoJsonLayer
           geoJson={geoJson as any}
           stateGeoJson={stateGeoJson}
+          lgas={lgas}
           lgaMap={lgaMap}
           programmes={programmes}
           filteredIds={filteredIds}
