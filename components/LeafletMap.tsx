@@ -36,7 +36,7 @@ interface Props {
 }
 
 function norm(s: string): string {
-  return s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return s.toLowerCase().trim().replace(/ state$/i, '').replace(/[^a-z0-9]/g, '');
 }
 
 function GeoJsonLayer({ 
@@ -182,17 +182,17 @@ function GeoJsonLayer({
   const hoveredRef = useRef<string | null>(null);
 
   const styleFeature = useCallback((feature?: Feature) => {
-    let fillColor = '#e2e8f0';
-    let fillOpacity = 0.15;
+    let fillColor = '#cbd5e1';
+    let fillOpacity = 0.35;
 
     if (view === 'national') {
       const props = feature?.properties || {};
-      // Robust state name matching for geoBoundaries and other common formats
+      // Robust state name matching
       const stateName = props.shapeName || props.NAME_1 || props.name || props.state || props.statename || props.NAME_0;
       const data = stateData.get(norm(stateName || ''));
       
       if (data) {
-        fillOpacity = 0.85; // Slightly more opaque for better visibility
+        fillOpacity = 0.85;
         if (mapMode === 'priority') {
           const avgGap = data.gap.reduce((a, b) => a + b, 0) / data.gap.length;
           fillColor = getPriorityColor(avgGap, data.funding / data.lgas);
@@ -200,8 +200,9 @@ function GeoJsonLayer({
           fillColor = getCapacityColor(data.count / data.lgas);
         }
       } else {
-        fillOpacity = 0.3; // Base opacity for states without data
-        fillColor = '#cbd5e1';
+        // Fallback for states without data but still show them clearly
+        fillOpacity = 0.4;
+        fillColor = '#94a3b8';
       }
     } else {
       const name = (feature?.properties?.LGA as string) || (feature?.properties?.name as string) || (feature?.properties?.shapeName as string) || '';
@@ -223,7 +224,14 @@ function GeoJsonLayer({
       }
     }
 
-    return { fillColor, fillOpacity, color: '#64748b', weight: 1, opacity: 0.8 } as L.PathOptions;
+    return { 
+      fillColor, 
+      fillOpacity, 
+      color: '#475569', 
+      weight: 1.5, 
+      opacity: 0.9,
+      pane: 'overlayPane'
+    } as L.PathOptions;
   }, [lgaMap, filteredIds, mapMode, view, stateData, capacityType, verifiedOnly, programmes]);
 
   const onEachFeature = useCallback((feature: Feature, layer: L.Layer) => {
@@ -276,7 +284,7 @@ function GeoJsonLayer({
 
       {view === 'national' && stateGeoJson && (
         <GeoJSON
-          key={`national-${mapMode}-${stateData.size}`}
+          key={`national-${mapMode}-${stateData.size}-${stateGeoJson ? 'loaded' : 'loading'}`}
           data={stateGeoJson}
           style={styleFeature}
           onEachFeature={onEachFeature}
@@ -284,7 +292,7 @@ function GeoJsonLayer({
       )}
       {view === 'lga' && geoJson && (
         <GeoJSON
-          key={`lga-${mapMode}`}
+          key={`lga-${mapMode}-${geoJson ? 'loaded' : 'loading'}`}
           data={geoJson}
           style={styleFeature}
           onEachFeature={onEachFeature}

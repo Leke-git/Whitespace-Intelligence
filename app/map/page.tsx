@@ -140,17 +140,26 @@ export default function MapPage() {
       });
 
     // Fetch State GeoJSON for national view
-    fetch('https://raw.githubusercontent.com/wmgeolab/geoBoundaries/main/releaseData/gbOpen/NGA/ADM1/geoBoundaries-NGA-ADM1.geojson')
-      .then(r => {
-        if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
-        return r.json();
-      })
-      .then((data: GeoJsonObject) => {
-        setStateGeoJson(data);
-      })
-      .catch(err => {
-        console.error('State GeoJSON load failed:', err);
-      });
+    const fetchStates = async () => {
+      const urls = [
+        'https://raw.githubusercontent.com/codeforgermany/click_that_hood/master/public/data/nigeria.geojson',
+        'https://raw.githubusercontent.com/wmgeolab/geoBoundaries/main/releaseData/gbOpen/NGA/ADM1/geoBoundaries-NGA-ADM1.geojson'
+      ];
+
+      for (const url of urls) {
+        try {
+          const r = await fetch(url);
+          if (r.ok) {
+            const data = await r.json();
+            setStateGeoJson(data);
+            return;
+          }
+        } catch (err) {
+          console.error(`State GeoJSON load failed from ${url}:`, err);
+        }
+      }
+    };
+    fetchStates();
   }, []);
 
   const currentGeoJson = useMemo(() => {
