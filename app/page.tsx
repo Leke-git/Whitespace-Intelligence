@@ -90,13 +90,12 @@ export default function Home() {
       <div className="py-12 bg-white border-y border-slate-100 overflow-hidden">
         <div className="flex whitespace-nowrap animate-scroll">
           {[...partners, ...partners].map((partner, idx) => (
-            <div key={idx} className="flex items-center gap-4 px-12 transition-all hover:scale-105">
+            <div key={idx} className="flex items-center px-12 transition-all hover:scale-110">
               <PartnerLogo 
                 name={partner.name} 
                 logo={partner.logo} 
                 className="w-32 h-12" 
               />
-              <span className="text-slate-400 font-bold text-xs uppercase tracking-widest">{partner.name}</span>
             </div>
           ))}
         </div>

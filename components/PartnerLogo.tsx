@@ -18,13 +18,10 @@ export function PartnerLogo({ name, logo, className = "" }: PartnerLogoProps) {
   
   if (error) {
     return (
-      <div className={`flex items-center gap-2 ${className}`}>
-        <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400">
-          <Building2 size={16} />
+      <div className={`flex items-center justify-center ${className}`}>
+        <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-300">
+          <Building2 size={20} />
         </div>
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate max-w-[120px]">
-          {name}
-        </span>
       </div>
     );
   }
