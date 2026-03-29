@@ -71,7 +71,6 @@ export default function MapPage() {
   }[]>([]);
   const [geoJson, setGeoJson]         = useState<GeoJsonObject | null>(null);
   const [stateGeoJson, setStateGeoJson] = useState<GeoJsonObject | null>(null);
-  const [view, setView]               = useState<'national' | 'lga'>('national');
   const [selectedLga, setSelectedLga] = useState<any>(null);
   const [hoveredLga, setHoveredLga]   = useState<any>(null);
   const [searchTerm, setSearchTerm]   = useState('');
@@ -162,34 +161,9 @@ export default function MapPage() {
     fetchStates();
   }, []);
 
-  const currentGeoJson = useMemo(() => {
-    if (view === 'national') return stateGeoJson;
-    return geoJson;
-  }, [view, stateGeoJson, geoJson]);
-
   // ── Stats for hovered/selected LGA ────────────────────────────────────────
   const stats = useMemo(() => {
     if (!activeLga) return null;
-
-    // If it's a state aggregation (clicked in national view)
-    if (view === 'national' && activeLga.state && !activeLga.id) {
-      const stateLgas = lgas.filter(l => l.state === activeLga.state);
-      const totalFunding = stateLgas.reduce((sum, l) => sum + (l.total_funding_usd || 0), 0);
-      const avgGap = stateLgas.reduce((sum, l) => sum + (l.gap_score || 0), 0) / stateLgas.length;
-      const totalNgos = stateLgas.reduce((sum, l) => sum + (l.ngo_count_verified || 0), 0);
-      
-      const stateProgCount = stateLgas.reduce((sum, l) => sum + programmes.filter(p => p.lga_id === l.id).length, 0);
-      
-      return {
-        isState: true,
-        name: activeLga.state,
-        funding: totalFunding,
-        gap: avgGap,
-        ngoCount: totalNgos,
-        lgaCount: stateLgas.length,
-        progCount: stateProgCount
-      };
-    }
 
     const lgaLinks = programmes.filter(p => p.lga_id === activeLga.id);
     const uniqueOrgs = new Set(
@@ -221,7 +195,7 @@ export default function MapPage() {
       trust: activeLga.dominant_trust_tier,
       ngoCount: activeLga.ngo_count_verified || 0
     };
-  }, [activeLga, programmes, lgas, view]);
+  }, [activeLga, programmes, lgas]);
 
   const states = useMemo(
     () => Array.from(new Set(lgas.map(l => l.state))).sort(),
@@ -523,22 +497,11 @@ export default function MapPage() {
           <LeafletMap
             lgas={filteredLgas}
             programmes={programmes}
-            onSelectLga={(lga) => {
-              if (view === 'national') {
-                if (lga && lga.state) {
-                  setSelectedState(lga.state);
-                  setView('lga');
-                }
-              } else {
-                setSelectedLga(lga);
-              }
-            }}
+            onSelectLga={setSelectedLga}
             onHoverLga={setHoveredLga}
-            onViewChange={setView}
             mapMode={mapMode}
             capacityType={capacityType}
             verifiedOnly={verifiedOnly}
-            view={view}
             geoJson={geoJson}
             stateGeoJson={stateGeoJson}
             isMobile={isMobile}
@@ -611,13 +574,11 @@ export default function MapPage() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[10px] font-bold uppercase tracking-wider rounded-md border border-emerald-100">
-                            {stats.isState ? 'State Overview' : 'LGA Profile'}
+                            LGA Profile
                           </span>
-                          {!stats.isState && (
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                              {stats.state}
-                            </span>
-                          )}
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            {stats.state}
+                          </span>
                         </div>
                         <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-none">
                           {stats.name}
@@ -645,7 +606,7 @@ export default function MapPage() {
                       </div>
                       <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ 
                         backgroundColor: mapMode === 'priority' 
-                          ? getPriorityColor(stats.gap, stats.funding / (stats.lgaCount || 1)) 
+                          ? getPriorityColor(stats.gap, stats.funding) 
                           : getCapacityColor(capacityType === 'ngos' ? stats.ngoCount : stats.progCount)
                       }}>
                         {mapMode === 'priority' ? <Shield className="w-6 h-6 text-white" /> : <Activity className="w-6 h-6 text-white" />}
@@ -667,15 +628,15 @@ export default function MapPage() {
                           <Activity className="w-3.5 h-3.5" />
                           <span className="text-[10px] font-bold uppercase tracking-wider">Projects</span>
                         </div>
-                        <div className="text-xl font-bold text-slate-900">{stats.progCount || stats.lgaCount}</div>
+                        <div className="text-xl font-bold text-slate-900">{stats.progCount}</div>
                         <div className="text-[10px] text-slate-500 font-medium">
-                          {stats.isState ? 'LGAs in State' : 'Active Programmes'}
+                          Active Programmes
                         </div>
                       </div>
                     </div>
 
                     {/* Gaps / Missing Sectors */}
-                    {!stats.isState && stats.gaps && stats.gaps.length > 0 && (
+                    {stats.gaps && stats.gaps.length > 0 && (
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
                           <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Critical Gaps</h3>
