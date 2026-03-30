@@ -75,9 +75,9 @@ function GeoJsonLayer({
   }, [map]);
 
   const stateOverlayStyle = useMemo(() => ({
-    color: '#475569',
-    weight: zoom > 8 ? 1.5 : 0.8,
-    opacity: zoom > 8 ? 0.4 : 0.2,
+    color: '#1e293b',
+    weight: zoom > 8 ? 2.0 : 1.2,
+    opacity: zoom > 8 ? 0.8 : 0.5,
     fillOpacity: 0,
     interactive: false
   }), [zoom]);
@@ -86,7 +86,7 @@ function GeoJsonLayer({
 
   const styleFeature = useCallback((feature?: Feature) => {
     let fillColor = '#cbd5e1';
-    let fillOpacity = 0.35;
+    let fillOpacity = 0.45;
 
     const name = (feature?.properties?.LGA as string) || (feature?.properties?.name as string) || (feature?.properties?.shapeName as string) || '';
     const lga  = lgaMap.get(norm(name));
@@ -109,9 +109,9 @@ function GeoJsonLayer({
     return { 
       fillColor, 
       fillOpacity, 
-      color: '#475569', 
-      weight: zoom > 8 ? 1.2 : 0.4, 
-      opacity: zoom > 8 ? 0.8 : 0.3,
+      color: '#334155', 
+      weight: zoom > 8 ? 1.5 : 0.8, 
+      opacity: zoom > 8 ? 1.0 : 0.6,
       pane: 'overlayPane'
     } as L.PathOptions;
   }, [lgaMap, filteredIds, mapMode, capacityType, verifiedOnly, programmes, zoom]);

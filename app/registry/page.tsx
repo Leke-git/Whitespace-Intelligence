@@ -159,10 +159,10 @@ export default function RegistryPage() {
   };
 
   return (
-    <main className="h-screen bg-slate-50 flex flex-col">
+    <main className="h-[100dvh] bg-slate-50 flex flex-col overflow-hidden">
       <Navbar />
 
-      <div className="flex-grow relative min-h-0 overflow-hidden">
+      <div className="flex-grow relative min-h-0">
         {/* ── Floating Command Bar (Top) ────────────────────────────────────── */}
         <div className="absolute top-6 left-1/2 -translate-x-1/2 w-full max-w-2xl px-4 z-[1000] flex gap-2">
           <div className="flex-grow relative group">
@@ -174,7 +174,7 @@ export default function RegistryPage() {
               placeholder="Search NGOs..."
               value={search}
               onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-              className="w-full pl-11 pr-4 py-3.5 bg-white/90 backdrop-blur-xl border border-slate-200/60 rounded-2xl shadow-2xl shadow-slate-200/50 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500/50 transition-all text-sm font-medium"
+              className="w-full pl-11 pr-4 py-3.5 bg-white/90 backdrop-blur-xl border border-slate-200/60 rounded-2xl shadow-2xl shadow-slate-200/50 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500/50 transition-all text-sm font-medium outline-none"
             />
           </div>
           
@@ -192,10 +192,10 @@ export default function RegistryPage() {
           </button>
         </div>
 
-        <div className="flex-grow relative bg-slate-50 h-full">
+        <div className="h-full relative bg-slate-50">
           <div 
             ref={scrollContainerRef}
-            className="h-full overflow-y-auto pt-24"
+            className="h-full overflow-y-auto pt-24 pb-32"
           >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative min-h-full">
               {loading ? (
@@ -274,62 +274,6 @@ export default function RegistryPage() {
                       ))}
                     </motion.div>
                   </AnimatePresence>
-
-                  {totalPages > 1 && (
-                    <div className="mt-16 flex items-center justify-center gap-4">
-                      <button
-                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                        disabled={currentPage === 1}
-                        className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                      >
-                        <ChevronLeft className="w-6 h-6" />
-                      </button>
-
-                      <div className="flex items-center gap-2">
-                        {(() => {
-                          const pages: (number | string)[] = [];
-                          const maxVisible = 5;
-                          if (totalPages <= maxVisible) {
-                            for (let i = 1; i <= totalPages; i++) pages.push(i);
-                          } else {
-                            pages.push(1);
-                            if (currentPage > 3) pages.push('...');
-                            const start = Math.max(2, currentPage - 1);
-                            const end = Math.min(totalPages - 1, currentPage + 1);
-                            for (let i = start; i <= end; i++) {
-                              if (i !== 1 && i !== totalPages) pages.push(i);
-                            }
-                            if (currentPage < totalPages - 2) pages.push('...');
-                            pages.push(totalPages);
-                          }
-                          return pages.map((page, idx) => (
-                            <button
-                              key={idx}
-                              onClick={() => typeof page === 'number' ? setCurrentPage(page) : null}
-                              disabled={typeof page !== 'number'}
-                              className={`w-10 h-10 rounded-lg font-bold text-sm transition-all ${
-                                currentPage === page
-                                  ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200'
-                                  : typeof page === 'number'
-                                    ? 'text-slate-600 hover:bg-slate-100'
-                                    : 'text-slate-400 cursor-default'
-                              }`}
-                            >
-                              {page}
-                            </button>
-                          ));
-                        })()}
-                      </div>
-
-                      <button
-                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                        disabled={currentPage === totalPages}
-                        className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                      >
-                        <ChevronRight className="w-6 h-6" />
-                      </button>
-                    </div>
-                  )}
                 </>
               ) : (
                 <div className="text-center py-20">
@@ -342,6 +286,65 @@ export default function RegistryPage() {
               )}
             </div>
           </div>
+
+          {/* ── Floating Bottom UI (Pagination) ────────────────────────────────── */}
+          {filteredOrgs.length > 0 && totalPages > 1 && (
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-full max-w-md px-4 z-[1000]">
+              <div className="bg-white/90 backdrop-blur-xl border border-slate-200/60 rounded-3xl shadow-2xl shadow-slate-200/50 p-3 flex items-center justify-between gap-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-xl border border-slate-100 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar px-2">
+                  {(() => {
+                    const pages: (number | string)[] = [];
+                    const maxVisible = isMobile ? 3 : 5;
+                    if (totalPages <= maxVisible) {
+                      for (let i = 1; i <= totalPages; i++) pages.push(i);
+                    } else {
+                      pages.push(1);
+                      if (currentPage > 3) pages.push('...');
+                      const start = Math.max(2, currentPage - 1);
+                      const end = Math.min(totalPages - 1, currentPage + 1);
+                      for (let i = start; i <= end; i++) {
+                        if (i !== 1 && i !== totalPages) pages.push(i);
+                      }
+                      if (currentPage < totalPages - 2) pages.push('...');
+                      pages.push(totalPages);
+                    }
+                    return pages.map((page, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => typeof page === 'number' ? setCurrentPage(page) : null}
+                        disabled={typeof page !== 'number'}
+                        className={`min-w-[36px] h-9 rounded-xl font-bold text-xs transition-all ${
+                          currentPage === page
+                            ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200'
+                            : typeof page === 'number'
+                              ? 'text-slate-600 hover:bg-slate-100'
+                              : 'text-slate-400 cursor-default'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    ));
+                  })()}
+                </div>
+
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-2 rounded-xl border border-slate-100 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── Filter Overlay ────────────────────────────────────────────────── */}

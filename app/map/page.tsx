@@ -224,12 +224,12 @@ export default function MapPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <main className="h-screen h-[100dvh] flex flex-col bg-slate-50 overflow-hidden font-sans">
+    <main className="fixed inset-0 flex flex-col bg-slate-50 overflow-hidden font-sans">
       <Navbar />
 
       <div className="flex-grow relative overflow-hidden">
         {/* ── Map Pane ────────────────────────────────────────────────────────── */}
-        <div className="w-full h-full relative">
+        <div className="absolute inset-0">
           <LeafletMap
             lgas={filteredLgas}
             programmes={programmes}
@@ -244,6 +244,7 @@ export default function MapPage() {
             selectedState={selectedState}
             drawerOpen={!!selectedLga}
           />
+        </div>
 
           {/* ── Floating Command Bar (Top) ────────────────────────────────────── */}
           <div className={`absolute top-6 left-1/2 -translate-x-1/2 w-full px-4 z-[1000] flex gap-2 transition-all duration-500 ${selectedLga ? 'max-w-lg lg:-translate-x-[calc(50%+100px)]' : 'max-w-2xl'}`}>
@@ -286,61 +287,8 @@ export default function MapPage() {
             </select>
           </div>
 
-          {/* ── Lens Switcher (Bottom Center) ─────────────────────────────────── */}
-          <div className={`absolute bottom-8 md:bottom-10 left-1/2 -translate-x-1/2 z-[1000] flex flex-col items-center gap-4 transition-all duration-500 ${selectedLga ? 'lg:-translate-x-[calc(50%+100px)]' : ''}`}>
-            <div className="flex p-1.5 bg-slate-900/90 backdrop-blur-xl rounded-full shadow-2xl border border-white/10">
-              {(Object.keys(MODE_META) as MapMode[]).map(mode => {
-                const { label, Icon } = MODE_META[mode];
-                const active = mapMode === mode;
-                return (
-                  <button
-                    key={mode}
-                    onClick={() => setMapMode(mode)}
-                    className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-[11px] font-black uppercase tracking-widest transition-all ${
-                      active
-                        ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <Icon className="w-3.5 h-3.5" />
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-            
-            {/* Capacity Sub-toggle */}
-            <AnimatePresence>
-              {mapMode === 'capacity' && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  className="flex gap-1 p-1 bg-white/90 backdrop-blur-xl rounded-xl shadow-xl border border-slate-200"
-                >
-                  <button
-                    onClick={() => setCapacityType('ngos')}
-                    className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
-                      capacityType === 'ngos' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:text-slate-700'
-                    }`}
-                  >
-                    NGOs
-                  </button>
-                  <button
-                    onClick={() => setCapacityType('programmes')}
-                    className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
-                      capacityType === 'programmes' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:text-slate-700'
-                    }`}
-                  >
-                    Programmes
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
           {/* ── National Intelligence Bento (Top Left) ─────────────────────── */}
-          <div className="absolute top-28 left-6 z-[1000] hidden xl:block">
+          <div className={`absolute top-28 left-6 z-[1000] hidden xl:block transition-all duration-500 ${selectedLga ? 'opacity-0 pointer-events-none -translate-x-10' : 'opacity-100'}`}>
             <motion.div 
               layout
               className="bg-white/90 backdrop-blur-xl p-5 rounded-[2rem] shadow-2xl border border-slate-200/60 w-72 overflow-hidden"
@@ -397,24 +345,83 @@ export default function MapPage() {
             </motion.div>
           </div>
 
-          {/* ── Map Legend (Bottom Left) ─────────────────────────────────────── */}
-          <div className={`absolute bottom-24 md:bottom-10 left-4 md:left-6 z-[1000] transition-all duration-500 ${selectedLga ? 'opacity-0 pointer-events-none translate-x-10' : 'opacity-100'}`}>
-            <div className="bg-white/90 backdrop-blur-xl p-3 md:p-5 rounded-2xl md:rounded-[2rem] shadow-2xl border border-slate-200/60 min-w-[140px] md:min-w-[180px]">
-              <div className="flex items-center gap-2 mb-2 md:mb-3">
-                <ModeIcon className="w-3 h-3 md:w-3.5 md:h-3.5 text-emerald-500" />
-                <h3 className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-900">
-                  {legend.title}
-                </h3>
-              </div>
-              <div className="space-y-1.5 md:space-y-2">
-                {legend.items.map(item => (
-                  <div key={item.label} className="flex items-center gap-2 md:gap-3">
-                    <div className="w-2 h-2 md:w-3 md:h-3 rounded-full shadow-sm" style={{ background: item.color }} />
-                    <span className="text-[8px] md:text-[10px] font-bold text-slate-600 uppercase tracking-wider">{item.label}</span>
-                  </div>
-                ))}
+          {/* ── Bottom UI Container (Consolidated for Responsiveness) ────────── */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 md:p-10 pointer-events-none z-[1000] flex flex-col md:flex-row items-center md:items-end justify-between gap-4 md:gap-6">
+            
+            {/* ── Map Legend (Left) ─────────────────────────────────────── */}
+            <div className={`pointer-events-auto transition-all duration-500 order-2 md:order-1 ${selectedLga ? 'opacity-0 pointer-events-none translate-x-10' : 'opacity-100'}`}>
+              <div className="bg-white/90 backdrop-blur-xl p-3 md:p-5 rounded-2xl md:rounded-[2rem] shadow-2xl border border-slate-200/60 min-w-[140px] md:min-w-[180px]">
+                <div className="flex items-center gap-2 mb-2 md:mb-3">
+                  <ModeIcon className="w-3 h-3 md:w-3.5 md:h-3.5 text-emerald-500" />
+                  <h3 className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-900">
+                    {legend.title}
+                  </h3>
+                </div>
+                <div className="space-y-1.5 md:space-y-2">
+                  {legend.items.map(item => (
+                    <div key={item.label} className="flex items-center gap-2 md:gap-3">
+                      <div className="w-2 h-2 md:w-3 md:h-3 rounded-full shadow-sm" style={{ background: item.color }} />
+                      <span className="text-[8px] md:text-[10px] font-bold text-slate-600 uppercase tracking-wider">{item.label}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
+
+            {/* ── Lens Switcher (Center) ─────────────────────────────────── */}
+            <div className={`pointer-events-auto transition-all duration-500 order-1 md:order-2 md:absolute md:left-1/2 md:-translate-x-1/2 flex flex-col items-center gap-3 md:gap-4 ${selectedLga ? 'lg:-translate-x-[calc(50%+100px)]' : ''}`}>
+              <div className="flex p-1 bg-slate-900/90 backdrop-blur-xl rounded-full shadow-2xl border border-white/10">
+                {(Object.keys(MODE_META) as MapMode[]).map(mode => {
+                  const { label, Icon } = MODE_META[mode];
+                  const active = mapMode === mode;
+                  return (
+                    <button
+                      key={mode}
+                      onClick={() => setMapMode(mode)}
+                      className={`flex items-center gap-1.5 md:gap-2 px-4 md:px-6 py-2 md:py-2.5 rounded-full text-[10px] md:text-[11px] font-black uppercase tracking-widest transition-all ${
+                        active
+                          ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <Icon className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+              
+              <AnimatePresence>
+                {mapMode === 'capacity' && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="flex gap-1 p-1 bg-white/90 backdrop-blur-xl rounded-xl shadow-xl border border-slate-200"
+                  >
+                    <button
+                      onClick={() => setCapacityType('ngos')}
+                      className={`px-3 md:px-4 py-1 md:py-1.5 rounded-lg text-[9px] md:text-[10px] font-bold uppercase tracking-wider transition-all ${
+                        capacityType === 'ngos' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      NGOs
+                    </button>
+                    <button
+                      onClick={() => setCapacityType('programmes')}
+                      className={`px-3 md:px-4 py-1 md:py-1.5 rounded-lg text-[9px] md:text-[10px] font-bold uppercase tracking-wider transition-all ${
+                        capacityType === 'programmes' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      Programmes
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Right Spacer for Desktop Balance */}
+            <div className="hidden md:block w-[180px] order-3" />
           </div>
 
           {/* ── Contextual Intelligence Panel (LGA Detail) ────────────────────── */}
@@ -437,7 +444,7 @@ export default function MapPage() {
                   transition={{ type: 'spring', damping: 25, stiffness: 200 }}
                   className={`absolute z-[1100] bg-white shadow-[-20px_0_50px_rgba(0,0,0,0.1)] border-slate-200 flex flex-col transition-all duration-500 ${
                     isMobile 
-                      ? 'bottom-0 left-0 right-0 h-[85vh] rounded-t-[3rem] border-t' 
+                      ? 'bottom-0 left-0 right-0 h-[85dvh] rounded-t-[3rem] border-t' 
                       : 'top-0 right-0 w-[480px] h-full border-l'
                   }`}
                 >
@@ -646,7 +653,6 @@ export default function MapPage() {
             )}
           </AnimatePresence>
         </div>
-      </div>
-    </main>
-  );
-}
+      </main>
+    );
+  }

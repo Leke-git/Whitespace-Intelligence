@@ -13,10 +13,11 @@ export default function Footer() {
       { name: 'Intelligence Hub', href: '/map' },
       { name: 'NGO Registry', href: '/registry' },
       { name: 'Methodology', href: '/methodology' },
+      { name: 'News & Updates', href: '/news' },
     ],
     resources: [
-      { name: 'News & Updates', href: '/news' },
-      { name: 'Resource Library', href: '/resources' },
+      { name: 'Dashboard', href: '/dashboard' },
+      { name: 'Log Activity', href: '/programme/new' },
       { name: 'Partner With Us', href: '/partner' },
       { name: 'Donate', href: '/partner#donate' },
       { name: 'FAQ', href: '/about#faq' },
