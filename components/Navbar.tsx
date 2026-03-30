@@ -29,10 +29,8 @@ export default function Navbar() {
 
   const navLinks = [
     { name: 'About', href: '/about', icon: Users },
-    { name: 'Coordination Map', href: '/map', icon: Map },
+    { name: 'Intelligence Hub', href: '/map', icon: Map },
     { name: 'NGO Registry', href: '/registry', icon: Users },
-    { name: 'Intelligence', href: '/intelligence', icon: LayoutDashboard },
-    { name: 'Gap Analysis', href: '/gap-analysis', icon: Shield },
     { name: 'News', href: '/news', icon: Shield },
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, protected: true },
     { name: 'Log Activity', href: '/programme/new', icon: Shield, protected: true },

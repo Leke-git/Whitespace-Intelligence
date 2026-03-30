@@ -4,27 +4,24 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useMemo } from 'react';
 import NextDynamic from 'next/dynamic';
-import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { supabase } from '@/lib/supabase';
 import { 
   AlertTriangle, Search, Shield,
-  ChevronRight, X, Users, Activity, BarChart3, Layers,
-  ChevronLeft, Menu as MenuIcon, Check, Filter
+  ChevronRight, X, Users, Activity,
+  ChevronLeft, ChevronDown, ChevronUp, Check, Filter, Globe
 } from 'lucide-react';
 import { BrandLoader } from '@/components/BrandLoader';
 import { motion, AnimatePresence } from 'motion/react';
-import { PartnerLogo } from '@/components/PartnerLogo';
 import type { GeoJsonObject } from 'geojson';
 import { 
   getPriorityColor, 
   getCapacityColor, 
-  TRUST_COLOURS, 
   PRIORITY_THRESHOLDS, 
   CAPACITY_THRESHOLDS,
   MapMode 
 } from '@/lib/map-utils';
-import type { LGA } from '@/components/LeafletMap';
+import { KolaNut } from '@/components/KolaNut';
 
 // ─── Dynamic import (avoids SSR) ─────────────────────────────────────────────
 
@@ -38,7 +35,18 @@ const LeafletMap = NextDynamic(() => import('@/components/LeafletMap'), {
   ),
 });
 
-// ─── Legend configs (mirrors colour scales in map-utils.ts) ─────────────────
+// ─── Constants ──────────────────────────────────────────────────────────────
+
+const SECTORS_LIST = [
+  'Protection',
+  'Food Security',
+  'Health',
+  'Nutrition',
+  'WASH',
+  'Education',
+  'Shelter',
+  'CCCM'
+];
 
 const LEGENDS: Record<MapMode, { title: string; items: { label: string; color: string }[] }> = {
   priority: {
@@ -56,19 +64,13 @@ const MODE_META: Record<MapMode, { label: string; Icon: React.ElementType }> = {
   capacity: { label: 'Capacity', Icon: Users },
 };
 
-const SECTORS = ['Health', 'Education', 'WASH', 'Nutrition', 'Protection'];
-
 // ─── MapPage ──────────────────────────────────────────────────────────────────
 
 export default function MapPage() {
   const [loading, setLoading]         = useState(true);
   const [geoLoading, setGeoLoading]   = useState(true);
   const [lgas, setLgas]               = useState<any[]>([]);
-  const [programmes, setProgrammes]   = useState<{
-    lga_id: number;
-    programme_id: number;
-    programmes: any;
-  }[]>([]);
+  const [programmes, setProgrammes]   = useState<any[]>([]);
   const [geoJson, setGeoJson]         = useState<GeoJsonObject | null>(null);
   const [stateGeoJson, setStateGeoJson] = useState<GeoJsonObject | null>(null);
   const [selectedLga, setSelectedLga] = useState<any>(null);
@@ -78,9 +80,10 @@ export default function MapPage() {
   const [mapMode, setMapMode]         = useState<MapMode>('priority');
   const [capacityType, setCapacityType] = useState<'ngos' | 'programmes'>('ngos');
   const [verifiedOnly, setVerifiedOnly] = useState(true);
-  const [selectedSectors, setSelectedSectors] = useState<string[]>(SECTORS);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
+  const [selectedSectors, setSelectedSectors] = useState<string[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
+  const [showNationalStats, setShowNationalStats] = useState(false);
+  const [isMobile, setIsMobile]       = useState(false);
 
   // ── Mobile detection ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -102,11 +105,10 @@ export default function MapPage() {
         { data: fundingData }
       ] = await Promise.all([
         supabase.from('lga_gap_scores').select('*'),
-        supabase.from('programme_lgas').select('lga_id, programme_id, programmes(id, organisation_id, status, sector_id)'),
+        supabase.from('programme_lgas').select('lga_id, programme_id, sector'),
         supabase.from('iati_funding').select('lga_id, amount_usd'),
       ]);
 
-      // Aggregate funding by LGA
       const fundingMap = (fundingData ?? []).reduce((acc: any, curr: any) => {
         if (!curr.lga_id) return acc;
         acc[curr.lga_id] = (acc[curr.lga_id] || 0) + Number(curr.amount_usd);
@@ -124,9 +126,8 @@ export default function MapPage() {
     })();
   }, []);
 
-  // ── Fetch GeoJSON once ────────────────────────────────────────────────────
+  // ── Fetch GeoJSON ─────────────────────────────────────────────────────────
   useEffect(() => {
-    // Fetch LGA GeoJSON
     fetch('https://hjxcwscjtxjmjqklsecc.supabase.co/storage/v1/object/public/geodata/nigeria_lga.geojson')
       .then(r => r.json())
       .then((data: GeoJsonObject) => {
@@ -138,24 +139,16 @@ export default function MapPage() {
         setGeoLoading(false);
       });
 
-    // Fetch State GeoJSON for national view
     const fetchStates = async () => {
-      const urls = [
-        'https://raw.githubusercontent.com/codeforgermany/click_that_hood/master/public/data/nigeria.geojson',
-        'https://raw.githubusercontent.com/wmgeolab/geoBoundaries/main/releaseData/gbOpen/NGA/ADM1/geoBoundaries-NGA-ADM1.geojson'
-      ];
-
-      for (const url of urls) {
-        try {
-          const r = await fetch(url);
-          if (r.ok) {
-            const data = await r.json();
-            setStateGeoJson(data);
-            return;
-          }
-        } catch (err) {
-          console.error(`State GeoJSON load failed from ${url}:`, err);
+      const url = 'https://raw.githubusercontent.com/codeforgermany/click_that_hood/master/public/data/nigeria.geojson';
+      try {
+        const r = await fetch(url);
+        if (r.ok) {
+          const data = await r.json();
+          setStateGeoJson(data);
         }
+      } catch (err) {
+        console.error('State GeoJSON load failed:', err);
       }
     };
     fetchStates();
@@ -166,34 +159,21 @@ export default function MapPage() {
     if (!activeLga) return null;
 
     const lgaLinks = programmes.filter(p => p.lga_id === activeLga.id);
-    const uniqueOrgs = new Set(
-      lgaLinks
-        .map(p => p.programmes?.organisation_id)
-        .filter(Boolean)
-    ).size;
+    const activeSectors = Array.from(new Set(lgaLinks.map(p => p.sector))).filter(Boolean);
     
-    const SECTOR_NAMES: Record<number, string> = {
-      1: 'Health', 2: 'Education', 3: 'WASH', 4: 'Nutrition', 5: 'Protection'
-    };
-    
-    const gaps = ['Health','Education','WASH','Nutrition','Protection']
-      .filter(s => {
-        const sectorId = Object.entries(SECTOR_NAMES).find(([_, name]) => name === s)?.[0];
-        return !lgaLinks.some(p => p.programmes?.sector_id === Number(sectorId));
-      });
+    const gaps = SECTORS_LIST.filter(s => !activeSectors.includes(s));
 
     return { 
-      isState: false,
       name: activeLga.name,
       state: activeLga.state,
-      orgCount: uniqueOrgs, 
+      ngoCount: activeLga.ngo_count_verified || 0,
       progCount: lgaLinks.length, 
+      activeSectors,
       gaps, 
       gapCount: gaps.length,
       funding: activeLga.total_funding_usd || 0,
       gap: activeLga.gap_score || 0,
-      trust: activeLga.dominant_trust_tier,
-      ngoCount: activeLga.ngo_count_verified || 0
+      need: activeLga.need_score || 0
     };
   }, [activeLga, programmes]);
 
@@ -203,31 +183,30 @@ export default function MapPage() {
   );
 
   const filteredLgas = useMemo(() => {
-    const SECTOR_NAMES: Record<number, string> = {
-      1: 'Health', 2: 'Education', 3: 'WASH', 4: 'Nutrition', 5: 'Protection'
-    };
+    let result = lgas;
 
-    return lgas.filter(lga => {
-      const matchSearch =
-        lga.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        lga.state.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchState  = !selectedState || lga.state === selectedState;
-      
-      // If all sectors are selected, don't filter by sector
-      if (selectedSectors.length === SECTORS.length) return matchSearch && matchState;
+    if (selectedState) {
+      result = result.filter(l => l.state === selectedState);
+    }
 
-      // Check primary needs
-      const primaryNeeds = lga.primary_needs || [];
-      const hasNeedMatch = selectedSectors.some(s => primaryNeeds.includes(s));
+    if (searchTerm) {
+      const s = searchTerm.toLowerCase();
+      result = result.filter(l => 
+        l.name.toLowerCase().includes(s) || 
+        l.state.toLowerCase().includes(s)
+      );
+    }
 
-      // Check active programmes
-      const lgaProgrammes = programmes.filter(p => p.lga_id === lga.id);
-      const activeSectors = lgaProgrammes.map(p => SECTOR_NAMES[p.programmes?.sector_id]).filter(Boolean);
-      const hasActiveMatch = selectedSectors.some(s => activeSectors.includes(s));
+    if (selectedSectors.length > 0) {
+      result = result.filter(l => {
+        const lgaProgs = programmes.filter(p => p.lga_id === l.id);
+        const activeSectors = new Set(lgaProgs.map(p => p.sector));
+        return selectedSectors.every(s => activeSectors.has(s));
+      });
+    }
 
-      return matchSearch && matchState && (hasNeedMatch || hasActiveMatch);
-    });
-  }, [lgas, searchTerm, selectedState, selectedSectors, programmes]);
+    return result;
+  }, [lgas, selectedState, searchTerm, selectedSectors, programmes]);
 
   const criticalCount = useMemo(
     () => lgas.filter(l => (l.gap_score ?? 0) > 0.8).length,
@@ -245,255 +224,12 @@ export default function MapPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <main className="h-screen flex flex-col bg-slate-100 overflow-hidden">
+    <main className="h-screen flex flex-col bg-slate-50 overflow-hidden font-sans">
       <Navbar />
 
       <div className="flex-grow relative overflow-hidden">
-        {/* ── Sidebar ────────────────────────────────────────────────────────── */}
-        <AnimatePresence>
-          {isMobile && isSidebarOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsSidebarOpen(false)}
-              className="absolute inset-0 bg-slate-900/10 backdrop-blur-[2px] z-[1040]"
-            />
-          )}
-        </AnimatePresence>
-
-        <motion.aside
-          initial={false}
-          animate={{ x: isSidebarOpen ? 0 : -320 }}
-          transition={{ duration: 0.3, ease: 'easeInOut' }}
-          className="absolute top-0 left-0 w-[320px] max-w-[66%] sm:w-80 h-full bg-white/90 backdrop-blur-md border-r border-slate-200 flex flex-col z-[1050] shadow-xl overflow-visible"
-        >
-          {/* Sidebar Toggle Button */}
-          <div className="absolute top-6 left-full z-[1060]">
-            <button
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className={`p-2.5 bg-white/90 backdrop-blur-md rounded-r-xl shadow-lg border-y border-r border-slate-200 hover:bg-slate-50 transition-all text-slate-600 ${
-                isMobile && isSidebarOpen ? 'ring-1 ring-slate-200/50' : ''
-              }`}
-              title={isSidebarOpen ? "Collapse Sidebar" : "Open Sidebar"}
-            >
-              {isSidebarOpen ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
-            </button>
-          </div>
-
-          <div className="flex-grow overflow-y-auto p-5 space-y-5">
-                {/* Mode switcher */}
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    Visualisation Lens
-                  </label>
-                  <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-2xl">
-                    {(Object.keys(MODE_META) as MapMode[]).map(mode => {
-                      const { label, Icon } = MODE_META[mode];
-                      const active = mapMode === mode;
-                      return (
-                        <button
-                          key={mode}
-                          onClick={() => setMapMode(mode)}
-                          className={`flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl text-[10px] font-bold transition-all ${
-                            active
-                              ? 'bg-white text-emerald-700 shadow-sm border border-emerald-100'
-                              : 'text-slate-500 hover:text-slate-700'
-                          }`}
-                        >
-                          <Icon className={`w-4 h-4 ${active ? 'text-emerald-600' : ''}`} />
-                          {label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Capacity Sub-filters */}
-                <AnimatePresence>
-                  {mapMode === 'capacity' && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="space-y-3 overflow-hidden"
-                    >
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Measure By</label>
-                        <div className="flex gap-1 p-1 bg-slate-100 rounded-xl">
-                          <button
-                            onClick={() => setCapacityType('ngos')}
-                            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
-                              capacityType === 'ngos' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                            }`}
-                          >
-                            NGOs
-                          </button>
-                          <button
-                            onClick={() => setCapacityType('programmes')}
-                            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
-                              capacityType === 'programmes' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                            }`}
-                          >
-                            Programmes
-                          </button>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => setVerifiedOnly(!verifiedOnly)}
-                        className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
-                          verifiedOnly 
-                            ? 'bg-emerald-50 border-emerald-200 text-emerald-700' 
-                            : 'bg-white border-slate-200 text-slate-500'
-                        }`}
-                      >
-                        <span className="text-[10px] font-bold uppercase tracking-wider">Verified Partners Only</span>
-                        <div className={`w-8 h-4 rounded-full relative transition-colors ${verifiedOnly ? 'bg-emerald-500' : 'bg-slate-200'}`}>
-                          <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${verifiedOnly ? 'left-4.5' : 'left-0.5'}`} />
-                        </div>
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Search Input - Moved back to Sidepanel */}
-                <div className="relative group">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
-                  <input
-                    type="text"
-                    placeholder="Search LGA or State..."
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                  />
-                </div>
-
-                {/* State & LGA */}
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">State</label>
-                    <select
-                      value={selectedState}
-                      onChange={e => {
-                        setSelectedState(e.target.value);
-                        setSelectedLga(null);
-                      }}
-                      className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-600"
-                    >
-                      <option value="">All States</option>
-                      {states.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">LGA</label>
-                    <select
-                      value={selectedLga?.id || ''}
-                      onChange={e => {
-                        const lga = lgas.find(l => l.id === Number(e.target.value));
-                        setSelectedLga(lga || null);
-                      }}
-                      disabled={!selectedState}
-                      className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-600 disabled:opacity-50 disabled:bg-slate-50"
-                    >
-                      <option value="">All LGAs</option>
-                      {lgas
-                        .filter(l => l.state === selectedState)
-                        .sort((a, b) => a.name.localeCompare(b.name))
-                        .map(l => <option key={l.id} value={l.id}>{l.name}</option>)
-                      }
-                    </select>
-                  </div>
-                </div>
-
-                {/* Sectors */}
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sectors</label>
-                  <div className="flex flex-wrap gap-2">
-                    {SECTORS.map(sector => {
-                      const isSelected = selectedSectors.includes(sector);
-                      return (
-                        <label
-                          key={sector}
-                          className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[10px] font-bold cursor-pointer transition-all ${
-                            isSelected
-                              ? 'bg-emerald-50 border-emerald-200 text-emerald-700 shadow-sm'
-                              : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
-                          }`}
-                        >
-                          <input type="checkbox" className="hidden"
-                            checked={isSelected}
-                            onChange={() => handleSectorToggle(sector)} />
-                          <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all flex-shrink-0 ${
-                            isSelected
-                              ? 'bg-emerald-500 border-emerald-500 text-white'
-                              : 'bg-white border-slate-300 text-transparent'
-                          }`}>
-                            <Check className="w-3 h-3" />
-                          </div>
-                          {sector}
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Summary stats */}
-                <div className="grid grid-cols-1 gap-2">
-                  <div className="p-3 bg-white/40 rounded-xl border border-slate-100">
-                    <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Showing</div>
-                    <div className="text-lg font-bold text-slate-900">{filteredLgas.length}</div>
-                    <div className="text-[10px] text-slate-400">of {lgas.length} LGAs</div>
-                  </div>
-                  <div className="p-3 bg-red-50/40 rounded-xl border border-red-100">
-                    <div className="text-[10px] font-bold text-red-400 uppercase mb-1">Critical</div>
-                    <div className="text-lg font-bold text-red-700">{criticalCount}</div>
-                    <div className="text-[10px] text-red-400">gap &gt; 0.8</div>
-                  </div>
-                </div>
-
-                {/* Mobile Legend */}
-                <div className="md:hidden pt-2 space-y-3">
-                  <div className="flex items-center gap-1.5">
-                    <ModeIcon className="w-3.5 h-3.5 text-slate-400" />
-                    <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                      {legend.title}
-                    </h3>
-                  </div>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                    {legend.items.map(item => (
-                      <div key={item.label} className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-sm flex-shrink-0" style={{ background: item.color }} />
-                        <span className="text-[10px] font-medium text-slate-600">{item.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Gap alert */}
-                {criticalCount > 0 && (
-                  <div className="p-4 bg-amber-50/40 rounded-xl border border-amber-100">
-                    <div className="flex items-center gap-2 text-amber-800 font-bold text-sm mb-2">
-                      <AlertTriangle className="w-4 h-4" />
-                      Intelligence Alert
-                    </div>
-                    <p className="text-xs text-amber-700 leading-relaxed">
-                      {criticalCount} LGAs show critical gaps despite high need scores.
-                    </p>
-                    <button
-                      className="mt-3 text-xs font-bold text-amber-900 underline"
-                      onClick={() => setMapMode('priority')}
-                    >
-                      View on map →
-                    </button>
-                  </div>
-                )}
-              </div>
-            </motion.aside>
-
-        {/* ── Map pane ────────────────────────────────────────────────────────── */}
-        <div className="w-full h-full relative bg-slate-100 overflow-hidden">
-          {/* Sidebar Toggle Button Group - Removed from here as it's now inside the sidebar */}
-
+        {/* ── Map Pane ────────────────────────────────────────────────────────── */}
+        <div className="w-full h-full relative">
           <LeafletMap
             lgas={filteredLgas}
             programmes={programmes}
@@ -508,177 +244,388 @@ export default function MapPage() {
             selectedState={selectedState}
           />
 
-          {/* ── Legend (Desktop only, moved above zoom controls) ────────────────── */}
-          <div className="hidden md:block absolute bottom-6 right-20 bg-white/80 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-slate-200 z-[999] min-w-[170px]">
-            <div className="flex items-center gap-1.5 mb-3">
-              <ModeIcon className="w-3.5 h-3.5 text-slate-400" />
-              <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                {legend.title}
-              </h3>
+          {/* ── Floating Command Bar (Top) ────────────────────────────────────── */}
+          <div className="absolute top-6 left-1/2 -translate-x-1/2 w-full max-w-2xl px-4 z-[1000] flex gap-2">
+            <div className="flex-grow relative group">
+              <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                <Search className="w-4 h-4 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search LGA or State..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="w-full pl-11 pr-4 py-3.5 bg-white/90 backdrop-blur-xl border border-slate-200/60 rounded-2xl shadow-2xl shadow-slate-200/50 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500/50 transition-all text-sm font-medium"
+              />
             </div>
-            <div className="space-y-1.5">
-              {legend.items.map(item => (
-                <div key={item.label} className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-sm flex-shrink-0" style={{ background: item.color }} />
-                  <span className="text-[10px] font-medium text-slate-600">{item.label}</span>
+            
+            <button 
+              onClick={() => setShowFilters(true)}
+              className={`px-4 bg-white/90 backdrop-blur-xl border border-slate-200/60 rounded-2xl shadow-2xl shadow-slate-200/50 hover:bg-slate-50 transition-all flex items-center gap-2 ${selectedSectors.length > 0 ? 'text-emerald-600' : 'text-slate-600'}`}
+            >
+              <Filter className="w-4 h-4" />
+              <span className="text-xs font-bold uppercase tracking-wider hidden sm:inline">Filters</span>
+              {selectedSectors.length > 0 && (
+                <span className="w-5 h-5 bg-emerald-500 text-white text-[10px] flex items-center justify-center rounded-full">
+                  {selectedSectors.length}
+                </span>
+              )}
+            </button>
+
+            <select
+              value={selectedState}
+              onChange={e => {
+                setSelectedState(e.target.value);
+                setSelectedLga(null);
+              }}
+              className="hidden md:block px-4 bg-white/90 backdrop-blur-xl border border-slate-200/60 rounded-2xl shadow-2xl shadow-slate-200/50 text-xs font-bold uppercase tracking-wider text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+            >
+              <option value="">All States</option>
+              {states.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+
+          {/* ── Lens Switcher (Bottom Center) ─────────────────────────────────── */}
+          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-[1000] flex flex-col items-center gap-4">
+            <div className="flex p-1.5 bg-slate-900/90 backdrop-blur-xl rounded-full shadow-2xl border border-white/10">
+              {(Object.keys(MODE_META) as MapMode[]).map(mode => {
+                const { label, Icon } = MODE_META[mode];
+                const active = mapMode === mode;
+                return (
+                  <button
+                    key={mode}
+                    onClick={() => setMapMode(mode)}
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-[11px] font-black uppercase tracking-widest transition-all ${
+                      active
+                        ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            
+            {/* Capacity Sub-toggle */}
+            <AnimatePresence>
+              {mapMode === 'capacity' && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="flex gap-1 p-1 bg-white/90 backdrop-blur-xl rounded-xl shadow-xl border border-slate-200"
+                >
+                  <button
+                    onClick={() => setCapacityType('ngos')}
+                    className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
+                      capacityType === 'ngos' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    NGOs
+                  </button>
+                  <button
+                    onClick={() => setCapacityType('programmes')}
+                    className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
+                      capacityType === 'programmes' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    Programmes
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* ── National Intelligence Bento (Bottom Left) ─────────────────────── */}
+          <div className="absolute bottom-10 left-6 z-[1000] hidden lg:block">
+            <motion.div 
+              layout
+              className="bg-white/90 backdrop-blur-xl p-5 rounded-[2rem] shadow-2xl border border-slate-200/60 w-80 overflow-hidden"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-emerald-500 rounded-xl">
+                    <Globe className="w-4 h-4 text-white" />
+                  </div>
+                  <h3 className="text-xs font-black uppercase tracking-widest text-slate-900">National Intel</h3>
                 </div>
-              ))}
+                <button 
+                  onClick={() => setShowNationalStats(!showNationalStats)}
+                  className="p-1.5 hover:bg-slate-100 rounded-full transition-colors"
+                >
+                  {showNationalStats ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                  <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Critical LGAs</div>
+                  <div className="text-xl font-black text-red-600">{criticalCount}</div>
+                </div>
+                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                  <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Orgs</div>
+                  <div className="text-xl font-black text-slate-900">142</div>
+                </div>
+              </div>
+
+              <AnimatePresence>
+                {showNationalStats && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="mt-4 pt-4 border-t border-slate-100 space-y-4"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        <span>Overall Response Gap</span>
+                        <span className="text-red-500">64%</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-red-500 w-[64%]" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-500 leading-relaxed italic">
+                      &quot;North-East coordination remains strained in WASH and Protection sectors. 12 LGAs in Borno report zero verified partner presence.&quot;
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          </div>
+
+          {/* ── Map Legend (Bottom Right) ─────────────────────────────────────── */}
+          <div className="absolute bottom-10 right-6 z-[1000] hidden md:block">
+            <div className="bg-white/90 backdrop-blur-xl p-5 rounded-[2rem] shadow-2xl border border-slate-200/60 min-w-[180px]">
+              <div className="flex items-center gap-2 mb-3">
+                <ModeIcon className="w-3.5 h-3.5 text-emerald-500" />
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900">
+                  {legend.title}
+                </h3>
+              </div>
+              <div className="space-y-2">
+                {legend.items.map(item => (
+                  <div key={item.label} className="flex items-center gap-3">
+                    <div className="w-3 h-3 rounded-full shadow-sm" style={{ background: item.color }} />
+                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">{item.label}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* ── LGA info card / Bottom Sheet ────────────────────────────────────────────── */}
+          {/* ── Contextual Drawer (LGA Detail) ────────────────────────────────── */}
           <AnimatePresence>
             {selectedLga && stats && (
               <motion.div
-                key="lga-info-card"
-                drag={isMobile ? "y" : false}
-                dragConstraints={isMobile ? { top: -400, bottom: 300 } : false}
-                dragElastic={0.1}
-                initial={isMobile ? { y: '100%', opacity: 0 } : { x: 20, opacity: 0 }}
-                animate={isMobile ? { 
-                  y: 0, 
-                  opacity: 1,
-                  left: 0,
-                  bottom: 0,
-                  top: 'auto',
-                  width: '100%'
-                } : { 
-                  x: 0, 
-                  opacity: 1,
-                  left: isSidebarOpen ? (isMobile ? 'min(50%, 280px)' : '320px') : '24px',
-                  bottom: 24,
-                  top: 'auto',
-                  width: '22rem'
-                }}
-                exit={isMobile ? { y: '100%', opacity: 0 } : { x: -20, opacity: 0 }}
-                transition={{ 
-                  left: { duration: 0.3, ease: 'easeInOut' },
-                  x: { type: 'spring', damping: 25, stiffness: 200 },
-                  default: { duration: 0.3, ease: [0.23, 1, 0.32, 1] }
-                }}
-                className={`absolute z-[1055] ${isMobile ? 'px-4 pb-4' : ''}`}
+                initial={isMobile ? { y: '100%' } : { x: '100%' }}
+                animate={isMobile ? { y: 0 } : { x: 0 }}
+                exit={isMobile ? { y: '100%' } : { x: '100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                className={`absolute z-[1100] bg-white shadow-[-20px_0_50px_rgba(0,0,0,0.1)] border-l border-slate-200 flex flex-col ${
+                  isMobile 
+                    ? 'bottom-0 left-0 right-0 h-[85vh] rounded-t-[3rem]' 
+                    : 'top-0 right-0 w-[420px] h-full'
+                }`}
               >
-                <div className={`bg-white/95 backdrop-blur-md shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-200/60 overflow-hidden ${
-                  isMobile ? 'rounded-t-3xl rounded-b-xl' : 'rounded-3xl'
-                }`}>
-                  {/* Mobile Drag Handle */}
-                  {isMobile && (
-                    <div className="w-full flex justify-center pt-3 pb-1">
-                      <div className="w-12 h-1.5 bg-slate-200 rounded-full" />
+                {/* Drawer Header */}
+                <div className="p-8 pb-4 flex justify-between items-start">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="px-2.5 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-emerald-100">
+                        LGA Intelligence
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                        {stats.state} State
+                      </span>
                     </div>
-                  )}
-
-                  <div className="p-6 space-y-6">
-                    {/* Header */}
-                    <div className="flex justify-between items-start">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[10px] font-bold uppercase tracking-wider rounded-md border border-emerald-100">
-                            LGA Profile
-                          </span>
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                            {stats.state}
-                          </span>
-                        </div>
-                        <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-none">
-                          {stats.name}
-                        </h2>
-                      </div>
-                      <button 
-                        onClick={() => setSelectedLga(null)}
-                        className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    </div>
-
-                    {/* Hero Metric based on Map Mode */}
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between">
-                      <div>
-                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
-                          {mapMode === 'priority' ? 'Need Intensity' : 
-                           capacityType === 'ngos' ? 'NGO Presence' : 'Activity Volume'}
-                        </div>
-                        <div className="text-3xl font-black text-slate-900 leading-none">
-                          {mapMode === 'priority' ? `${(stats.gap * 100).toFixed(0)}%` : 
-                           capacityType === 'ngos' ? stats.ngoCount : stats.progCount}
-                        </div>
-                      </div>
-                      <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ 
-                        backgroundColor: mapMode === 'priority' 
-                          ? getPriorityColor(stats.gap, stats.funding) 
-                          : getCapacityColor(capacityType === 'ngos' ? stats.ngoCount : stats.progCount)
-                      }}>
-                        {mapMode === 'priority' ? <Shield className="w-6 h-6 text-white" /> : <Activity className="w-6 h-6 text-white" />}
-                      </div>
-                    </div>
-
-                    {/* Common Stats Grid */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="p-4 rounded-2xl border border-slate-100 bg-white shadow-sm">
-                        <div className="flex items-center gap-2 text-slate-400 mb-2">
-                          <Users className="w-3.5 h-3.5" />
-                          <span className="text-[10px] font-bold uppercase tracking-wider">NGOs</span>
-                        </div>
-                        <div className="text-xl font-bold text-slate-900">{stats.ngoCount}</div>
-                        <div className="text-[10px] text-slate-500 font-medium">Verified Partners</div>
-                      </div>
-                      <div className="p-4 rounded-2xl border border-slate-100 bg-white shadow-sm">
-                        <div className="flex items-center gap-2 text-slate-400 mb-2">
-                          <Activity className="w-3.5 h-3.5" />
-                          <span className="text-[10px] font-bold uppercase tracking-wider">Projects</span>
-                        </div>
-                        <div className="text-xl font-bold text-slate-900">{stats.progCount}</div>
-                        <div className="text-[10px] text-slate-500 font-medium">
-                          Active Programmes
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Gaps / Missing Sectors */}
-                    {stats.gaps && stats.gaps.length > 0 && (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Critical Gaps</h3>
-                          <span className="px-2 py-0.5 bg-red-50 text-red-600 text-[10px] font-bold rounded-full">
-                            {stats.gapCount} Missing
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {stats.gaps.map(gap => (
-                            <span key={gap} className="px-3 py-1.5 bg-white border border-red-100 text-red-700 text-[10px] font-bold rounded-xl shadow-sm flex items-center gap-1.5">
-                              <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                              {gap}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Action Button */}
-                    <button className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold text-sm hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 flex items-center justify-center gap-2 group">
-                      View Detailed Intelligence
-                      <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                    </button>
+                    <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-tight">
+                      {stats.name}
+                    </h2>
                   </div>
+                  <button 
+                    onClick={() => setSelectedLga(null)}
+                    className="p-3 hover:bg-slate-100 rounded-full transition-colors text-slate-400"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+
+                <div className="flex-grow overflow-y-auto px-8 pb-8 space-y-8 custom-scrollbar">
+                  {/* Kola Nut Visualization */}
+                  <div className="relative py-4 flex flex-col items-center">
+                    <div className="absolute top-0 left-0 w-full h-full bg-emerald-50/30 rounded-[3rem] -z-10" />
+                    <KolaNut 
+                      size={240} 
+                      sectors={SECTORS_LIST} 
+                      activeSectors={stats.activeSectors || []} 
+                      orgCount={stats.ngoCount} 
+                    />
+                    <div className="mt-4 text-center">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600">Sector Health Index</p>
+                      <p className="text-xs text-slate-500 mt-1 font-medium italic">&quot;Lobe fullness indicates sector coverage&quot;</p>
+                    </div>
+                  </div>
+
+                  {/* Humanized Summary */}
+                  <div className="p-6 bg-slate-900 rounded-[2.5rem] text-white shadow-xl shadow-slate-900/20">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Intelligence Summary</span>
+                    </div>
+                    <p className="text-sm leading-relaxed font-medium">
+                      {stats.gap > 0.7 
+                        ? `${stats.name} is currently a high-priority zone. Despite a need score of ${(stats.need * 10).toFixed(1)}, only ${stats.ngoCount} organisations are active, leaving critical gaps in ${stats.gaps.slice(0, 2).join(' and ')}.`
+                        : `${stats.name} shows moderate coordination. Sector coverage is balanced, but capacity in ${stats.gaps[0] || 'Health'} could be strengthened to meet rising demand.`
+                      }
+                    </p>
+                  </div>
+
+                  {/* Stats Grid */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-5 rounded-[2rem] border border-slate-100 bg-slate-50/50">
+                      <div className="flex items-center gap-2 text-slate-400 mb-2">
+                        <Users className="w-4 h-4" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">Partners</span>
+                      </div>
+                      <div className="text-2xl font-black text-slate-900">{stats.ngoCount}</div>
+                      <div className="text-[10px] text-slate-500 font-bold mt-1 uppercase tracking-wider">Verified Orgs</div>
+                    </div>
+                    <div className="p-5 rounded-[2rem] border border-slate-100 bg-slate-50/50">
+                      <div className="flex items-center gap-2 text-slate-400 mb-2">
+                        <Activity className="w-4 h-4" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">Projects</span>
+                      </div>
+                      <div className="text-2xl font-black text-slate-900">{stats.progCount}</div>
+                      <div className="text-[10px] text-slate-500 font-bold mt-1 uppercase tracking-wider">Active Progs</div>
+                    </div>
+                  </div>
+
+                  {/* Sector Breakdown */}
+                  <div className="space-y-4">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Sector Breakdown</h3>
+                    <div className="space-y-2">
+                      {SECTORS_LIST.map(sector => {
+                        const isActive = stats.activeSectors?.includes(sector);
+                        return (
+                          <div key={sector} className="flex items-center justify-between p-3 rounded-2xl bg-white border border-slate-100 shadow-sm">
+                            <span className={`text-xs font-bold ${isActive ? 'text-slate-900' : 'text-slate-300'}`}>{sector}</span>
+                            {isActive ? (
+                              <div className="px-2 py-0.5 bg-emerald-500 text-white text-[9px] font-black rounded-md uppercase tracking-wider">Active</div>
+                            ) : (
+                              <div className="px-2 py-0.5 bg-slate-100 text-slate-400 text-[9px] font-black rounded-md uppercase tracking-wider">Gap</div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Drawer Footer */}
+                <div className="p-8 pt-4 border-t border-slate-100">
+                  <button className="w-full py-5 bg-emerald-500 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] hover:bg-emerald-600 transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-3 group">
+                    Download Full Report
+                    <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </button>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* ── Loading overlay ──────────────────────────────────────────── */}
+          {/* ── Filter Overlay ────────────────────────────────────────────────── */}
+          <AnimatePresence>
+            {showFilters && (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 z-[1200] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-6"
+              >
+                <motion.div 
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden"
+                >
+                  <div className="p-8 pb-4 flex justify-between items-center">
+                    <h3 className="text-xl font-black text-slate-900 uppercase tracking-widest">Refine Intelligence</h3>
+                    <button onClick={() => setShowFilters(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                      <X className="w-5 h-5 text-slate-400" />
+                    </button>
+                  </div>
+                  
+                  <div className="p-8 space-y-8">
+                    <div className="space-y-4">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Sectors of Interest</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        {SECTORS_LIST.map(sector => {
+                          const isSelected = selectedSectors.includes(sector);
+                          return (
+                            <button
+                              key={sector}
+                              onClick={() => handleSectorToggle(sector)}
+                              className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all ${
+                                isSelected 
+                                  ? 'border-emerald-500 bg-emerald-50 text-emerald-700' 
+                                  : 'border-slate-100 bg-slate-50 text-slate-500 hover:border-slate-200'
+                              }`}
+                            >
+                              <span className="text-xs font-bold">{sector}</span>
+                              {isSelected && <Check className="w-4 h-4" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 bg-slate-900 rounded-2xl text-white">
+                      <div className="flex items-center gap-3">
+                        <Shield className="w-5 h-5 text-emerald-400" />
+                        <div>
+                          <p className="text-xs font-bold">Verified Partners Only</p>
+                          <p className="text-[9px] text-slate-400 uppercase tracking-wider">Filter by data quality</p>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => setVerifiedOnly(!verifiedOnly)}
+                        className={`w-12 h-6 rounded-full relative transition-colors ${verifiedOnly ? 'bg-emerald-500' : 'bg-slate-700'}`}
+                      >
+                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${verifiedOnly ? 'left-7' : 'left-1'}`} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="p-8 pt-0">
+                    <button 
+                      onClick={() => setShowFilters(false)}
+                      className="w-full py-5 bg-emerald-500 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-emerald-500/20"
+                    >
+                      Apply Filters
+                    </button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* ── Loading Overlay ───────────────────────────────────────────────── */}
           <AnimatePresence>
             {(loading || geoLoading) && (
               <motion.div
                 initial={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 flex flex-col items-center justify-center bg-slate-100/80 backdrop-blur-sm z-[2000]"
+                className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50/90 backdrop-blur-xl z-[2000]"
               >
                 <BrandLoader size="lg" />
-                <p className="mt-4 text-slate-600 font-semibold">
-                  {geoLoading ? 'Loading LGA boundaries…' : 'Fetching coordination data…'}
-                </p>
-                <p className="text-slate-400 text-sm mt-1">Nigeria · 774 LGAs</p>
+                <div className="mt-8 text-center">
+                  <p className="text-lg font-black text-slate-900 uppercase tracking-widest">
+                    {geoLoading ? 'Mapping Boundaries' : 'Syncing Intelligence'}
+                  </p>
+                  <p className="text-slate-400 text-xs mt-2 font-bold uppercase tracking-[0.2em]">Nigeria · 774 LGAs · Live Data</p>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
