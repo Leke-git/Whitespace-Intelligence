@@ -63,7 +63,7 @@ export default function ChatSupport() {
   };
 
   return (
-    <div className="fixed bottom-28 right-4 md:bottom-8 md:right-8 z-[5000]">
+    <div className="fixed bottom-8 right-4 md:bottom-8 md:right-8 z-[1000]">
       <AnimatePresence>
         {isOpen && (
           <motion.div

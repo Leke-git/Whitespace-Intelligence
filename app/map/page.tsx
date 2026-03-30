@@ -350,20 +350,28 @@ export default function MapPage() {
             
             {/* ── Map Legend (Left) ─────────────────────────────────────── */}
             <div className={`pointer-events-auto transition-all duration-500 order-2 md:order-1 ${selectedLga ? 'opacity-0 pointer-events-none translate-x-10' : 'opacity-100'}`}>
-              <div className="bg-white/90 backdrop-blur-xl p-3 md:p-5 rounded-2xl md:rounded-[2rem] shadow-2xl border border-slate-200/60 min-w-[140px] md:min-w-[180px]">
-                <div className="flex items-center gap-2 mb-2 md:mb-3">
-                  <ModeIcon className="w-3 h-3 md:w-3.5 md:h-3.5 text-emerald-500" />
-                  <h3 className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-900">
-                    {legend.title}
-                  </h3>
-                </div>
-                <div className="space-y-1.5 md:space-y-2">
-                  {legend.items.map(item => (
-                    <div key={item.label} className="flex items-center gap-2 md:gap-3">
-                      <div className="w-2 h-2 md:w-3 md:h-3 rounded-full shadow-sm" style={{ background: item.color }} />
-                      <span className="text-[8px] md:text-[10px] font-bold text-slate-600 uppercase tracking-wider">{item.label}</span>
-                    </div>
+              <div className="bg-white/90 backdrop-blur-xl p-4 md:p-6 rounded-2xl md:rounded-[2.5rem] shadow-2xl border border-slate-200/60 min-w-[280px] md:min-w-[360px] flex flex-col items-center">
+                <h3 className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3 text-center">
+                  {legend.title}
+                </h3>
+                
+                <div className="w-full h-2.5 md:h-3 flex rounded-full overflow-hidden shadow-inner bg-slate-100 border border-slate-200/50">
+                  {legend.items.map((item, idx) => (
+                    <div 
+                      key={idx} 
+                      className="flex-grow h-full transition-colors duration-500" 
+                      style={{ backgroundColor: item.color }} 
+                    />
                   ))}
+                </div>
+                
+                <div className="w-full flex justify-between mt-2 px-0.5">
+                  <span className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-wider">
+                    Most Sustainable
+                  </span>
+                  <span className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-wider">
+                    Least Sustainable
+                  </span>
                 </div>
               </div>
             </div>
