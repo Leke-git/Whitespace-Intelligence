@@ -141,7 +141,7 @@ function GeoJsonLayer({
         const lga  = lgaMap.get(norm(name));
         if (lga) {
           onSelectLga(lga);
-          map.fitBounds((e.target as L.Path).getBounds(), { padding: [100, 100], maxZoom: 12 });
+          map.fitBounds((e.target as L.Polygon).getBounds(), { padding: [100, 100], maxZoom: 12 });
         }
       },
     });
