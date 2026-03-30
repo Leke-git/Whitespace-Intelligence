@@ -192,28 +192,6 @@ export default function RegistryPage() {
           </button>
         </div>
 
-        {/* ── Results Count Bento (Bottom Left) ─────────────────────── */}
-        <div className="absolute bottom-10 left-6 z-[1000] hidden xl:block">
-          <motion.div 
-            layout
-            className="bg-white/90 backdrop-blur-xl p-5 rounded-[2rem] shadow-2xl border border-slate-200/60 w-64 overflow-hidden"
-          >
-            <div className="flex items-center gap-2 mb-4">
-              <div className="p-2 bg-emerald-500 rounded-xl">
-                <Users className="w-4 h-4 text-white" />
-              </div>
-              <h3 className="text-xs font-black uppercase tracking-widest text-slate-900">Registry Stats</h3>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3">
-              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Orgs</div>
-                <div className="text-xl font-black text-slate-900">{filteredOrgs.length}</div>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-
         <div className="flex-grow relative bg-slate-50 h-full">
           <div 
             ref={scrollContainerRef}
