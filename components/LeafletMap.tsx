@@ -220,12 +220,22 @@ export default function LeafletMap({
     return `lga-${lgas.length}-${stateGeoJson ? 's' : 'no-s'}-${geoJson ? 'l' : 'no-l'}`;
   }, [lgas.length, stateGeoJson, geoJson]);
 
+  const nigeriaBounds = useMemo(() => {
+    return L.latLngBounds(
+      L.latLng(4.0, 2.5), // Southwest corner
+      L.latLng(14.0, 15.0) // Northeast corner
+    );
+  }, []);
+
   return (
     <div className="w-full h-full relative" onMouseMove={handleMouseMove}>
       <MapContainer
         key={mapKey}
         center={[9.082, 8.6753]}
         zoom={6}
+        minZoom={6}
+        maxBounds={nigeriaBounds}
+        maxBoundsViscosity={1.0}
         style={{ height: '100%', width: '100%', background: '#f8fafc' }}
         className="subtle-map"
         zoomControl={false}
