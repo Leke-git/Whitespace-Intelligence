@@ -31,6 +31,7 @@ interface Props {
   stateGeoJson?: GeoJsonObject | null;
   isMobile?: boolean;
   selectedState?: string;
+  drawerOpen?: boolean;
 }
 
 function norm(s: string): string {
@@ -157,8 +158,9 @@ function GeoJsonLayer({
   );
 }
 
-function MapController({ selectedState, stateGeoJson }: { selectedState?: string, stateGeoJson?: GeoJsonObject | null }) {
+function MapController({ selectedState, stateGeoJson, drawerOpen, isMobile }: { selectedState?: string, stateGeoJson?: GeoJsonObject | null, drawerOpen?: boolean, isMobile?: boolean }) {
   const map = useMap();
+  
   useEffect(() => {
     if (selectedState && stateGeoJson) {
        const features = (stateGeoJson as any).features;
@@ -172,6 +174,16 @@ function MapController({ selectedState, stateGeoJson }: { selectedState?: string
        }
     }
   }, [selectedState, stateGeoJson, map]);
+
+  useEffect(() => {
+    if (drawerOpen && !isMobile) {
+      map.panBy([-100, 0], { animate: true, duration: 0.5 });
+    } else if (!drawerOpen && !isMobile) {
+      // No easy way to "unpan" accurately without storing original center, 
+      // but usually the user will interact anyway.
+    }
+  }, [drawerOpen, isMobile, map]);
+
   return null;
 }
 
@@ -186,7 +198,8 @@ export default function LeafletMap({
   geoJson, 
   stateGeoJson,
   isMobile,
-  selectedState
+  selectedState,
+  drawerOpen
 }: Props) {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [hoveredData, setHoveredData] = useState<{ name: string; state?: string; value: string | number } | null>(null);
@@ -218,8 +231,8 @@ export default function LeafletMap({
         zoomControl={false}
         attributionControl={false}
       >
-        <ZoomControl position="bottomright" />
-        <MapController selectedState={selectedState} stateGeoJson={stateGeoJson} />
+        <ZoomControl position="topright" />
+        <MapController selectedState={selectedState} stateGeoJson={stateGeoJson} drawerOpen={drawerOpen} isMobile={isMobile} />
         <GeoJsonLayer
           geoJson={geoJson as any}
           stateGeoJson={stateGeoJson}
