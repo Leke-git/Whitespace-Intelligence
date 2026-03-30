@@ -28,7 +28,7 @@ export function KolaNut({ sectors, activeSectors, orgCount, size = 200, interact
     return '#B4B2A9';
   };
 
-  const activeColor = color || '#C4541A';
+  const activeColor = color || getLGAColor(lobes);
 
   return (
     <motion.svg 
@@ -38,45 +38,50 @@ export function KolaNut({ sectors, activeSectors, orgCount, size = 200, interact
       className={interactive ? 'cursor-pointer' : ''}
       whileHover={interactive ? { scale: 1.05 } : {}}
     >
-      {/* Background Circle */}
-      <circle cx={cx} cy={cy} r={R + r * 1.2} fill="#1A1A1A" opacity="0.4" />
+      {/* Husk */}
+      <circle cx={cx} cy={cy} r={R + r * 0.6} fill="#7A3B10" opacity="0.07" stroke="#7A3B10" strokeWidth="1" />
       
-      {/* Lobes (Petals) */}
+      {/* Lobes */}
       {lobes.map((active, i) => {
-        const angle = (i * (360 / sectors.length) - 90) * Math.PI / 180;
+        const angle = (i * 60 - 90) * Math.PI / 180;
         const lx = cx + Math.cos(angle) * R;
         const ly = cy + Math.sin(angle) * R;
-        const rot = i * (360 / sectors.length) - 90;
+        const rot = i * 60 - 90;
         
         return (
           <g key={i}>
             <ellipse
               cx={lx}
               cy={ly}
-              rx={r * 0.8}
-              ry={r * 1.3}
+              rx={r * 0.68}
+              ry={r * 1.1}
               transform={`rotate(${rot} ${lx} ${ly})`}
               fill={active ? activeColor : 'none'}
-              stroke={active ? 'none' : '#4A4A4A'}
-              strokeWidth={active ? 0 : 1.5}
+              stroke={active ? 'none' : '#B4B2A9'}
+              strokeWidth={active ? 0 : 1}
               strokeDasharray={active ? 'none' : '4 3'}
-              opacity={active ? 0.9 : 0.3}
+              opacity={active ? 0.82 : 0.45}
+            />
+            <line 
+              x1={cx} y1={cy} 
+              x2={cx + Math.cos((i * 60 - 60) * Math.PI / 180) * (R + r * 0.5)} 
+              y2={cy + Math.sin((i * 60 - 60) * Math.PI / 180) * (R + r * 0.5)}
+              stroke="#7A3B10" strokeWidth="0.7" opacity="0.35"
             />
           </g>
         );
       })}
 
-      {/* Center Nut (Core) */}
-      <circle cx={cx} cy={cy} r={innerR * 1.6} fill="#2A2A2A" />
-      <circle cx={cx} cy={cy} r={innerR * 1.3} fill={activeColor} opacity="0.3" />
-      <circle cx={cx} cy={cy} r={innerR} fill={activeColor} opacity="0.8" />
+      {/* Center Nut */}
+      <circle cx={cx} cy={cy} r={innerR * 1.4} fill="#8B3A0F" opacity="0.85" />
+      <circle cx={cx} cy={cy} r={innerR} fill="#A04412" opacity="0.9" />
       
       {/* Text */}
-      <text x={cx} y={cy - 2} textAnchor="middle" dominantBaseline="central" fontSize={size > 100 ? 18 : 11} fill="white" fontWeight="900">
+      <text x={cx} y={cy + 1} textAnchor="middle" dominantBaseline="central" fontSize={size > 100 ? 14 : 9} fill="white" fontWeight="600">
         {orgs}
       </text>
       {size > 100 && (
-        <text x={cx} y={cy + 14} textAnchor="middle" fontSize="10" fill="white" opacity="0.6" fontWeight="700" className="uppercase tracking-widest">
+        <text x={cx} y={cy + 16} textAnchor="middle" fontSize="9" fill="white" opacity="0.7">
           orgs
         </text>
       )}
