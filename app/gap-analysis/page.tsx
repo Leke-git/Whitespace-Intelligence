@@ -136,9 +136,15 @@ export default function GapAnalysisPage() {
       if (!lgaData) return;
 
       const enrichedLgas = lgaData.map(lga => {
-        const lgaProgs = (progData || []).filter(p => p.lga_id === lga.id);
-        const activeSectorIds = new Set(lgaProgs.map(p => p.programmes?.sector_id));
-        const uniqueOrgs = new Set(lgaProgs.map(p => p.programmes?.organisation_id)).size;
+        const lgaProgs = (progData as any[] || []).filter(p => p.lga_id === lga.id);
+        const activeSectorIds = new Set(lgaProgs.map(p => {
+          const prog = Array.isArray(p.programmes) ? p.programmes[0] : p.programmes;
+          return prog?.sector_id;
+        }));
+        const uniqueOrgs = new Set(lgaProgs.map(p => {
+          const prog = Array.isArray(p.programmes) ? p.programmes[0] : p.programmes;
+          return prog?.organisation_id;
+        })).size;
         
         // Map sectors to lobes
         const lobes = SECTORS.map(s => activeSectorIds.has(s.id));

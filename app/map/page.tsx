@@ -195,7 +195,7 @@ export default function MapPage() {
       trust: activeLga.dominant_trust_tier,
       ngoCount: activeLga.ngo_count_verified || 0
     };
-  }, [activeLga, programmes, lgas]);
+  }, [activeLga, programmes]);
 
   const states = useMemo(
     () => Array.from(new Set(lgas.map(l => l.state))).sort(),
