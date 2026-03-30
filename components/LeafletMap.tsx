@@ -139,10 +139,13 @@ function GeoJsonLayer({
       click(e: L.LeafletMouseEvent) {
         const name = (feature.properties?.LGA as string) || (feature.properties?.name as string) || (feature.properties?.shapeName as string) || '';
         const lga  = lgaMap.get(norm(name));
-        if (lga) onSelectLga(lga);
+        if (lga) {
+          onSelectLga(lga);
+          map.fitBounds((e.target as L.Path).getBounds(), { padding: [100, 100], maxZoom: 12 });
+        }
       },
     });
-  }, [lgaMap, onHoverLga, onSelectLga, styleFeature]);
+  }, [lgaMap, onHoverLga, onSelectLga, styleFeature, map]);
 
   return (
     <>
@@ -167,9 +170,17 @@ function GeoJsonLayer({
   );
 }
 
-function MapController({ selectedState, stateGeoJson, drawerOpen, isMobile }: { selectedState?: string, stateGeoJson?: GeoJsonObject | null, drawerOpen?: boolean, isMobile?: boolean }) {
+function MapController({ selectedState, stateGeoJson, drawerOpen, isMobile, nigeriaBounds }: { selectedState?: string, stateGeoJson?: GeoJsonObject | null, drawerOpen?: boolean, isMobile?: boolean, nigeriaBounds: L.LatLngBounds }) {
   const map = useMap();
+  const initialFitRef = useRef(false);
   
+  useEffect(() => {
+    if (isMobile && !selectedState && !initialFitRef.current) {
+      map.fitBounds(nigeriaBounds, { padding: [20, 20] });
+      initialFitRef.current = true;
+    }
+  }, [isMobile, map, nigeriaBounds, selectedState]);
+
   useEffect(() => {
     if (selectedState && stateGeoJson) {
        const features = (stateGeoJson as any).features;
@@ -241,8 +252,8 @@ export default function LeafletMap({
       <MapContainer
         key={mapKey}
         center={[9.082, 8.6753]}
-        zoom={6}
-        minZoom={6}
+        zoom={isMobile ? 5 : 6}
+        minZoom={isMobile ? 5 : 6}
         maxBounds={nigeriaBounds}
         maxBoundsViscosity={1.0}
         style={{ height: '100%', width: '100%', background: '#f8fafc' }}
@@ -251,7 +262,13 @@ export default function LeafletMap({
         attributionControl={false}
       >
         {!isMobile && <ZoomControl position="topright" />}
-        <MapController selectedState={selectedState} stateGeoJson={stateGeoJson} drawerOpen={drawerOpen} isMobile={isMobile} />
+        <MapController 
+          selectedState={selectedState} 
+          stateGeoJson={stateGeoJson} 
+          drawerOpen={drawerOpen} 
+          isMobile={isMobile} 
+          nigeriaBounds={nigeriaBounds} 
+        />
         <GeoJsonLayer
           geoJson={geoJson as any}
           stateGeoJson={stateGeoJson}

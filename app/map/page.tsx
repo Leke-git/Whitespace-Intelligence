@@ -177,6 +177,15 @@ export default function MapPage() {
     };
   }, [activeLga, programmes]);
 
+  const dossierRef = useMemo(() => {
+    if (!stats) return '';
+    const statePart = stats.state.substring(0, 3).toUpperCase();
+    const lgaPart = stats.name.substring(0, 3).toUpperCase();
+    // Use a simple hash of the name/state to get a stable "random" number
+    const hash = (stats.name + stats.state).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 1000;
+    return `REF: ${statePart}_${lgaPart}_${hash.toString().padStart(3, '0')}`;
+  }, [stats]);
+
   const states = useMemo(
     () => Array.from(new Set(lgas.map(l => l.state))).sort(),
     [lgas],
@@ -346,7 +355,7 @@ export default function MapPage() {
           </div>
 
           {/* ── Bottom UI Container (Consolidated for Responsiveness) ────────── */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 md:p-10 pointer-events-none z-[1000] flex flex-col md:flex-row items-center md:items-end justify-between gap-4 md:gap-6">
+          <div className="absolute bottom-0 left-0 right-0 p-4 md:p-10 pointer-events-none z-[1000] flex flex-col md:flex-row items-start md:items-end justify-between gap-4 md:gap-6">
             
             {/* ── Map Legend (Left) ─────────────────────────────────────── */}
             <div className={`pointer-events-auto transition-all duration-500 order-2 md:order-1 ${selectedLga ? 'opacity-0 pointer-events-none translate-x-10' : 'opacity-100'}`}>
@@ -450,116 +459,177 @@ export default function MapPage() {
                   animate={isMobile ? { y: 0 } : { x: 0 }}
                   exit={isMobile ? { y: '100%' } : { x: '100%' }}
                   transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                  className={`absolute z-[1100] bg-white shadow-[-20px_0_50px_rgba(0,0,0,0.1)] border-slate-200 flex flex-col transition-all duration-500 ${
+                  className={`absolute z-[1100] bg-white shadow-[-40px_0_80px_rgba(0,0,0,0.1)] flex flex-col transition-all duration-500 overflow-hidden ${
                     isMobile 
-                      ? 'bottom-0 left-0 right-0 h-[85dvh] rounded-t-[3rem] border-t' 
-                      : 'top-0 right-0 w-[480px] h-full border-l'
+                      ? 'bottom-0 left-0 right-0 h-[90dvh] rounded-t-[3rem] border-t border-slate-200' 
+                      : 'top-0 right-0 w-[520px] h-full border-l border-slate-200'
                   }`}
                 >
-                  {/* Panel Header */}
-                  <div className="p-8 pb-6 border-b border-slate-100 flex justify-between items-start shrink-0">
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="px-2.5 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-emerald-100">
-                          LGA Intelligence
-                        </span>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                          {stats.state} State
-                        </span>
+                  {/* ── Dossier Header ────────────────────────────────────────── */}
+                  <div className="relative p-8 md:p-10 pb-6 border-b border-slate-200 shrink-0">
+                    <div className="flex justify-between items-start mb-6">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-[0.2em]">Live_Intelligence_Feed</span>
+                        </div>
+                        <div className="text-[10px] font-mono text-slate-400 uppercase tracking-widest">
+                          {dossierRef}
+                        </div>
                       </div>
-                      <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-tight">
+                      <button 
+                        onClick={() => setSelectedLga(null)}
+                        className="p-2 hover:bg-slate-100 rounded-xl transition-all text-slate-400 border border-transparent hover:border-slate-200"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-2">
+                      <h2 className="text-5xl font-serif italic font-light text-slate-900 tracking-tight leading-none">
                         {stats.name}
                       </h2>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-black uppercase tracking-[0.3em] text-emerald-600">{stats.state} State</span>
+                        <div className="h-px w-12 bg-slate-200" />
+                        <span className="text-[10px] font-mono text-slate-400">7.4848° N, 4.5595° E</span>
+                      </div>
                     </div>
-                    <button 
-                      onClick={() => setSelectedLga(null)}
-                      className="p-3 hover:bg-slate-100 rounded-full transition-colors text-slate-400"
-                    >
-                      <X className="w-6 h-6" />
-                    </button>
                   </div>
 
-                  {/* Scrollable Intelligence Feed */}
-                  <div className="flex-grow overflow-y-auto p-6 space-y-4 custom-scrollbar bg-slate-50/30">
-                    
-                    <div className="grid grid-cols-6 gap-4">
-                      {/* Bento Block 1: The Visual Core (Large) */}
-                      <div className="col-span-6 md:col-span-4 p-6 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col items-center justify-center relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                          <Activity className="w-24 h-24" />
-                        </div>
+                  {/* ── Intelligence Feed ─────────────────────────────────────── */}
+                  <div className="flex-grow overflow-y-auto custom-scrollbar">
+                    {/* Module 1: Scanning Core */}
+                    <div className="grid grid-cols-2 border-b border-slate-200">
+                      <div className="col-span-2 md:col-span-1 p-8 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-slate-200 bg-slate-50/30">
                         <KolaNut 
-                          size={180} 
+                          size={200} 
                           sectors={SECTORS_LIST} 
                           activeSectors={stats.activeSectors || []} 
                           orgCount={stats.ngoCount} 
                         />
-                        <div className="mt-4 text-center">
-                          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-600">Sector Health Index</p>
+                        <div className="mt-6 text-center space-y-1">
+                          <p className="text-[9px] font-mono font-bold uppercase tracking-[0.2em] text-slate-400">Sector_Health_Index</p>
+                          <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">
+                            {((stats.activeSectors.length / SECTORS_LIST.length) * 100).toFixed(0)}% Coverage
+                          </p>
                         </div>
                       </div>
 
-                      {/* Bento Block 2: Quick Stats (Stacked) */}
-                      <div className="col-span-6 md:col-span-2 space-y-4">
-                        <div className="p-5 bg-emerald-500 rounded-[2rem] text-white shadow-lg shadow-emerald-500/20 flex flex-col items-center justify-center text-center">
-                          <Users className="w-5 h-5 mb-2 opacity-80" />
-                          <div className="text-2xl font-black">{stats.ngoCount}</div>
-                          <div className="text-[8px] font-bold uppercase tracking-widest opacity-70 text-white">Partners</div>
+                      <div className="col-span-2 md:col-span-1 flex flex-col">
+                        <div className="flex-grow p-8 border-b border-slate-200 flex flex-col justify-center">
+                          <div className="text-[9px] font-mono font-bold uppercase tracking-[0.2em] text-slate-400 mb-1">Gap_Score</div>
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-4xl font-serif italic font-light text-slate-900">{(stats.gap * 10).toFixed(1)}</span>
+                            <span className="text-xs font-mono text-slate-400">/ 10.0</span>
+                          </div>
+                          <div className="mt-2 w-full h-1 bg-slate-100 rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full transition-all duration-1000 ${stats.gap > 0.7 ? 'bg-red-500' : 'bg-emerald-500'}`}
+                              style={{ width: `${stats.gap * 100}%` }}
+                            />
+                          </div>
                         </div>
-                        <div className="p-5 bg-white rounded-[2rem] border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
-                          <Globe className="w-5 h-5 mb-2 text-slate-300" />
-                          <div className="text-xl font-black text-slate-900">${(stats.funding / 1000000).toFixed(1)}M</div>
-                          <div className="text-[8px] font-bold uppercase tracking-widest text-slate-400">Funding</div>
+                        <div className="flex-grow p-8 flex flex-col justify-center bg-slate-50/50">
+                          <div className="text-[9px] font-mono font-bold uppercase tracking-[0.2em] text-slate-400 mb-1">Verified_Partners</div>
+                          <div className="text-4xl font-serif italic font-light text-slate-900">{stats.ngoCount}</div>
+                          <div className="text-[10px] font-mono text-emerald-600 mt-1">Status: ACTIVE_PRESENCE</div>
                         </div>
                       </div>
+                    </div>
 
-                      {/* Bento Block 3: Humanized Summary (Wide) */}
-                      <div className="col-span-6 p-6 bg-slate-900 rounded-[2.5rem] text-white shadow-xl shadow-slate-900/20 relative overflow-hidden">
-                        <div className="absolute -bottom-4 -right-4 p-4 opacity-10">
-                          <Shield className="w-16 h-16" />
+                    {/* Module 2: Funding Pulse */}
+                    <div className="p-8 border-b border-slate-200 bg-white">
+                      <div className="flex justify-between items-end mb-6">
+                        <div>
+                          <div className="text-[9px] font-mono font-bold uppercase tracking-[0.2em] text-slate-400 mb-1">Funding_Pulse</div>
+                          <div className="text-2xl font-serif italic font-light text-slate-900">${(stats.funding / 1000000).toFixed(2)}M</div>
                         </div>
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                          <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Intelligence Summary</span>
+                        <div className="text-right">
+                          <div className="text-[9px] font-mono font-bold uppercase tracking-[0.2em] text-slate-400 mb-1">Resource_Gap</div>
+                          <div className="text-sm font-mono font-bold text-red-500">-${((1 - stats.funding/1000000) * 100).toFixed(0)}% Target</div>
                         </div>
-                        <p className="text-sm leading-relaxed font-medium pr-8">
+                      </div>
+                      <div className="grid grid-cols-10 gap-1 h-8">
+                        {Array.from({ length: 10 }).map((_, i) => (
+                          <div 
+                            key={i} 
+                            className={`rounded-sm transition-all duration-700 ${
+                              i < (stats.funding / 1000000) * 10 
+                                ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]' 
+                                : 'bg-slate-100'
+                            }`} 
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Module 3: Intelligence Summary */}
+                    <div className="p-8 border-b border-slate-200 bg-slate-50/30">
+                      <div className="text-[9px] font-mono font-bold uppercase tracking-[0.2em] text-slate-400 mb-4">Executive_Summary</div>
+                      <div className="relative p-6 bg-white border border-slate-200 rounded-2xl shadow-sm">
+                        <div className="absolute -top-2 -left-2 p-1 bg-white border border-slate-200 rounded-md">
+                          <Shield className="w-3 h-3 text-slate-400" />
+                        </div>
+                        <p className="text-sm leading-relaxed text-slate-600 font-medium italic">
                           {stats.gap > 0.7 
-                            ? `${stats.name} is a high-priority zone. Critical gaps persist in ${stats.gaps.slice(0, 2).join(' and ')}.`
-                            : `${stats.name} shows stable coordination. Sector coverage is balanced across the region.`
+                            ? `Intelligence indicates ${stats.name} is a high-priority zone. Critical gaps persist in ${stats.gaps.slice(0, 2).join(' and ')}. Immediate resource reallocation is recommended to stabilize sector health.`
+                            : `Analysis confirms ${stats.name} shows stable coordination. Sector coverage is balanced across the region with no immediate critical interventions required.`
                           }
                         </p>
                       </div>
+                    </div>
 
-                      {/* Bento Block 4: Sector Health Grid (Detailed) */}
-                      <div className="col-span-6 p-6 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm space-y-4">
-                        <div className="flex items-center justify-between px-1">
-                          <h3 className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Sector Breakdown</h3>
-                          <div className="flex gap-1">
-                            <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                            <div className="w-2 h-2 rounded-full bg-slate-200" />
+                    {/* Module 4: Sector Status Grid */}
+                    <div className="p-8">
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="text-[9px] font-mono font-bold uppercase tracking-[0.2em] text-slate-400">Sector_Status_Registry</div>
+                        <div className="flex gap-2">
+                          <div className="flex items-center gap-1">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                            <span className="text-[8px] font-mono text-slate-400">ACTIVE</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <div className="w-1.5 h-1.5 rounded-full bg-slate-200" />
+                            <span className="text-[8px] font-mono text-slate-400">GAP</span>
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          {SECTORS_LIST.map(sector => {
-                            const isActive = stats.activeSectors?.includes(sector);
-                            return (
-                              <div key={sector} className={`flex items-center justify-between p-3 rounded-xl border transition-all ${isActive ? 'bg-emerald-50/50 border-emerald-100' : 'bg-slate-50/30 border-slate-100 opacity-60'}`}>
-                                <span className={`text-[10px] font-bold ${isActive ? 'text-slate-900' : 'text-slate-400'}`}>{sector}</span>
-                                {isActive && <div className="w-1 h-1 rounded-full bg-emerald-500" />}
+                      </div>
+                      <div className="grid grid-cols-1 gap-px bg-slate-100 border border-slate-100 rounded-xl overflow-hidden">
+                        {SECTORS_LIST.map(sector => {
+                          const isActive = stats.activeSectors?.includes(sector);
+                          return (
+                            <div key={sector} className="flex items-center justify-between p-4 bg-white hover:bg-slate-50 transition-colors group">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${isActive ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-200'}`} />
+                                <span className={`text-[11px] font-bold tracking-wide ${isActive ? 'text-slate-900' : 'text-slate-400'}`}>{sector}</span>
                               </div>
-                            );
-                          })}
-                        </div>
+                              <span className="text-[9px] font-mono text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">
+                                {isActive ? 'STABLE' : 'CRITICAL_GAP'}
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
 
-                  {/* Panel Footer */}
-                  <div className="p-8 pt-4 border-t border-slate-100 shrink-0">
-                    <button className="w-full py-5 bg-emerald-500 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] hover:bg-emerald-600 transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-3 group">
-                      Download Intelligence Report
-                      <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                    </button>
+                  {/* ── Command Bar ───────────────────────────────────────────── */}
+                  <div className="p-8 border-t border-slate-200 bg-white shrink-0">
+                    <div className="grid grid-cols-2 gap-3">
+                      <button className="col-span-2 py-4 bg-slate-900 text-white rounded-xl font-mono font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-slate-800 transition-all flex items-center justify-center gap-3 group">
+                        Export_Intelligence_Dossier
+                        <ChevronRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                      </button>
+                      <button className="py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-mono font-bold text-[9px] uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2">
+                        <Users className="w-3 h-3" />
+                        View_Partners
+                      </button>
+                      <button className="py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-mono font-bold text-[9px] uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2">
+                        <Globe className="w-3 h-3" />
+                        Compare_LGA
+                      </button>
+                    </div>
                   </div>
                 </motion.div>
               </>
