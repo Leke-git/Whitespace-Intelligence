@@ -182,7 +182,7 @@ export default function MapPage() {
     const statePart = stats.state.substring(0, 3).toUpperCase();
     const lgaPart = stats.name.substring(0, 3).toUpperCase();
     // Use a simple hash of the name/state to get a stable "random" number
-    const hash = (stats.name + stats.state).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 1000;
+    const hash = (stats.name + stats.state).split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0) % 1000;
     return `REF: ${statePart}_${lgaPart}_${hash.toString().padStart(3, '0')}`;
   }, [stats]);
 
