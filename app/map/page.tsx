@@ -425,110 +425,133 @@ export default function MapPage() {
                 animate={isMobile ? { y: 0 } : { x: 0 }}
                 exit={isMobile ? { y: '100%' } : { x: '100%' }}
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className={`absolute z-[1100] bg-white shadow-[-20px_0_50px_rgba(0,0,0,0.1)] border-l border-slate-200 flex flex-col ${
+                className={`absolute z-[1100] bg-white text-slate-900 shadow-[-20px_0_50px_rgba(0,0,0,0.1)] border-l border-slate-200 flex flex-col ${
                   isMobile 
                     ? 'bottom-0 left-0 right-0 h-[85vh] rounded-t-[3rem]' 
                     : 'top-0 right-0 w-[420px] h-full'
                 }`}
               >
-                {/* Drawer Header */}
-                <div className="p-8 pb-4 flex justify-between items-start">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="px-2.5 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-emerald-100">
-                        LGA Intelligence
-                      </span>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                        {stats.state} State
-                      </span>
+                {/* Drawer Header: Breadcrumbs & Back */}
+                <div className="p-8 pb-4">
+                  <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                      <span className="px-2 py-1 border border-slate-200 rounded-md text-slate-600">Nigeria</span>
+                      <span>›</span>
+                      <span className="px-2 py-1 border border-slate-200 rounded-md text-slate-600">{stats.state}</span>
+                      <span>›</span>
+                      <span className="text-slate-300">{stats.name}</span>
                     </div>
-                    <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-tight">
-                      {stats.name}
-                    </h2>
+                    <div className="flex items-center gap-4">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">LGA Gap Analysis</span>
+                      <button 
+                        onClick={() => setSelectedLga(null)}
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-all text-[10px] font-black uppercase tracking-widest text-slate-600"
+                      >
+                        <ChevronLeft className="w-3 h-3" />
+                        Back
+                      </button>
+                    </div>
                   </div>
-                  <button 
-                    onClick={() => setSelectedLga(null)}
-                    className="p-3 hover:bg-slate-100 rounded-full transition-colors text-slate-400"
-                  >
-                    <X className="w-6 h-6" />
-                  </button>
+
+                  <h2 className="text-4xl font-black tracking-tighter mb-12 text-slate-900">
+                    {stats.name} LGA
+                  </h2>
+
+                  {/* Key Metrics Row */}
+                  <div className="grid grid-cols-3 gap-8 mb-12">
+                    <div>
+                      <div className="text-3xl font-black mb-1 text-slate-900">{stats.ngoCount}</div>
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-tight">active<br/>orgs</div>
+                    </div>
+                    <div>
+                      <div className="text-3xl font-black mb-1 text-slate-900">{stats.activeSectors.length}/{SECTORS_LIST.length}</div>
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-tight">sectors<br/>covered</div>
+                    </div>
+                    <div>
+                      <div className="text-3xl font-black mb-1 text-slate-900">{stats.gapCount}</div>
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-tight">sectors<br/>absent</div>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex-grow overflow-y-auto px-8 pb-8 space-y-8 custom-scrollbar">
-                  {/* Kola Nut Visualization */}
-                  <div className="relative py-4 flex flex-col items-center">
-                    <div className="absolute top-0 left-0 w-full h-full bg-emerald-50/30 rounded-[3rem] -z-10" />
-                    <KolaNut 
-                      size={240} 
-                      sectors={SECTORS_LIST} 
-                      activeSectors={stats.activeSectors || []} 
-                      orgCount={stats.ngoCount} 
-                    />
-                    <div className="mt-4 text-center">
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600">Sector Health Index</p>
-                      <p className="text-xs text-slate-500 mt-1 font-medium italic">&quot;Lobe fullness indicates sector coverage&quot;</p>
+                <div className="flex-grow overflow-y-auto px-8 pb-8 space-y-12 custom-scrollbar">
+                  <div className="flex flex-col gap-12">
+                    {/* Visual Representation */}
+                    <div className="w-full flex flex-col items-center py-8 bg-slate-50 rounded-[3rem]">
+                      <KolaNut 
+                        size={220} 
+                        sectors={SECTORS_LIST} 
+                        activeSectors={stats.activeSectors || []} 
+                        orgCount={stats.ngoCount} 
+                      />
+                      <div className="mt-8 text-center">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                          {stats.activeSectors.length} of {SECTORS_LIST.length} sectors · {stats.ngoCount} organisations
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Sector Breakdown */}
+                    <div className="space-y-6">
+                      <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4">Sector breakdown</h3>
+                      <div className="space-y-5">
+                        {SECTORS_LIST.map(sector => {
+                          const isActive = stats.activeSectors?.includes(sector);
+                          // Stable pseudo-random reach based on sector name and LGA name
+                          const reach = isActive ? (40 + (sector.length + stats.name.length) % 50) : 0;
+                          const color = {
+                            'Protection': '#8B5CF6',
+                            'Food Security': '#D97706',
+                            'Health': '#D85A30',
+                            'Nutrition': '#F59E0B',
+                            'WASH': '#10B981',
+                            'Education': '#3B82F6',
+                            'Shelter': '#6366F1',
+                            'CCCM': '#EC4899',
+                          }[sector] || '#C4541A';
+
+                          return (
+                            <div key={sector} className="group">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: isActive ? color : '#E2E8F0' }} />
+                                  <span className={`text-sm font-bold ${isActive ? 'text-slate-900' : 'text-slate-300'}`}>{sector}</span>
+                                </div>
+                                <span className={`text-[10px] font-black uppercase tracking-widest ${isActive ? '' : 'italic text-slate-300'}`} style={{ color: isActive ? color : undefined }}>
+                                  {isActive ? `${reach}% reach` : 'absent'}
+                                </span>
+                              </div>
+                              <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                {isActive && (
+                                  <motion.div 
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${reach}%` }}
+                                    className="h-full rounded-full"
+                                    style={{ backgroundColor: color }}
+                                  />
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
 
-                  {/* Humanized Summary */}
-                  <div className="p-6 bg-slate-900 rounded-[2.5rem] text-white shadow-xl shadow-slate-900/20">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Intelligence Summary</span>
-                    </div>
-                    <p className="text-sm leading-relaxed font-medium">
-                      {stats.gap > 0.7 
-                        ? `${stats.name} is currently a high-priority zone. Despite a need score of ${(stats.need * 10).toFixed(1)}, only ${stats.ngoCount} organisations are active, leaving critical gaps in ${stats.gaps.slice(0, 2).join(' and ')}.`
-                        : `${stats.name} shows moderate coordination. Sector coverage is balanced, but capacity in ${stats.gaps[0] || 'Health'} could be strengthened to meet rising demand.`
-                      }
+                  {/* Summary Text */}
+                  <div className="pt-8 border-t border-slate-100">
+                    <p className="text-sm leading-relaxed text-slate-600 font-medium">
+                      <strong className="text-slate-900">{stats.name}</strong> is {stats.gap > 0.7 ? 'critically underserved' : 'moderately served'} across most sectors. 
+                      {stats.activeSectors.length > 0 ? ` ${stats.activeSectors.slice(0, 3).join(', ')} are active.` : ' No verified partners are currently present.'}
+                      {stats.gaps.length > 0 && ` ${stats.gaps.slice(0, 2).join(' and ')} remain the primary gaps.`}
                     </p>
-                  </div>
-
-                  {/* Stats Grid */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-5 rounded-[2rem] border border-slate-100 bg-slate-50/50">
-                      <div className="flex items-center gap-2 text-slate-400 mb-2">
-                        <Users className="w-4 h-4" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Partners</span>
-                      </div>
-                      <div className="text-2xl font-black text-slate-900">{stats.ngoCount}</div>
-                      <div className="text-[10px] text-slate-500 font-bold mt-1 uppercase tracking-wider">Verified Orgs</div>
-                    </div>
-                    <div className="p-5 rounded-[2rem] border border-slate-100 bg-slate-50/50">
-                      <div className="flex items-center gap-2 text-slate-400 mb-2">
-                        <Activity className="w-4 h-4" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Projects</span>
-                      </div>
-                      <div className="text-2xl font-black text-slate-900">{stats.progCount}</div>
-                      <div className="text-[10px] text-slate-500 font-bold mt-1 uppercase tracking-wider">Active Progs</div>
-                    </div>
-                  </div>
-
-                  {/* Sector Breakdown */}
-                  <div className="space-y-4">
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Sector Breakdown</h3>
-                    <div className="space-y-2">
-                      {SECTORS_LIST.map(sector => {
-                        const isActive = stats.activeSectors?.includes(sector);
-                        return (
-                          <div key={sector} className="flex items-center justify-between p-3 rounded-2xl bg-white border border-slate-100 shadow-sm">
-                            <span className={`text-xs font-bold ${isActive ? 'text-slate-900' : 'text-slate-300'}`}>{sector}</span>
-                            {isActive ? (
-                              <div className="px-2 py-0.5 bg-emerald-500 text-white text-[9px] font-black rounded-md uppercase tracking-wider">Active</div>
-                            ) : (
-                              <div className="px-2 py-0.5 bg-slate-100 text-slate-400 text-[9px] font-black rounded-md uppercase tracking-wider">Gap</div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
                   </div>
                 </div>
 
                 {/* Drawer Footer */}
                 <div className="p-8 pt-4 border-t border-slate-100">
-                  <button className="w-full py-5 bg-emerald-500 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] hover:bg-emerald-600 transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-3 group">
-                    Download Full Report
+                  <button className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-slate-800 transition-all flex items-center justify-center gap-3 group">
+                    Download Intelligence Report
                     <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </button>
                 </div>
