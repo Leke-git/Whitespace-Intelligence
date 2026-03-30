@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
-import { Building2 } from 'lucide-react';
+import { Building2, Globe, Shield, Users, Activity, Heart, Zap, Award } from 'lucide-react';
 
 interface PartnerLogoProps {
   name: string;
@@ -10,32 +9,21 @@ interface PartnerLogoProps {
   className?: string;
 }
 
-export function PartnerLogo({ name, logo, className = "" }: PartnerLogoProps) {
-  const [error, setError] = useState(false);
+const ICONS = [Building2, Globe, Shield, Users, Activity, Heart, Zap, Award];
 
-  // Use clearbit directly as primary, unavatar as secondary, then fallback
-  const primaryLogo = logo.replace('unavatar.io/clearbit/', 'logo.clearbit.com/');
-  
-  if (error) {
-    return (
-      <div className={`flex items-center justify-center ${className}`}>
-        <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-300">
-          <Building2 size={20} />
-        </div>
-      </div>
-    );
-  }
+export function PartnerLogo({ name, logo, className = "" }: PartnerLogoProps) {
+  // Use a stable hash of the name to pick an icon
+  const iconIndex = Math.abs(name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % ICONS.length;
+  const Icon = ICONS[iconIndex];
 
   return (
-    <div className={`relative ${className}`}>
-      <Image
-        src={primaryLogo}
-        alt={name}
-        fill
-        className="object-contain"
-        onError={() => setError(true)}
-        referrerPolicy="no-referrer"
-      />
+    <div className={`flex items-center gap-3 ${className} group/logo`}>
+      <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover/logo:text-emerald-500 group-hover/logo:border-emerald-100 group-hover/logo:bg-emerald-50 transition-all duration-500">
+        <Icon size={20} />
+      </div>
+      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 group-hover/logo:text-slate-600 transition-colors duration-500 whitespace-normal leading-tight max-w-[120px]">
+        {name}
+      </span>
     </div>
   );
 }

@@ -2,10 +2,11 @@
 
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { PartnerLogo } from '@/components/PartnerLogo';
-import { Users, Target, Shield, Globe, Linkedin, Twitter, Mail } from 'lucide-react';
+import { Users, Target, Shield, Globe, Linkedin, Twitter, Mail, Plus, Minus, HelpCircle } from 'lucide-react';
 import Image from 'next/image';
+import { useState } from 'react';
 
 const team = [
   {
@@ -29,13 +30,77 @@ const team = [
 ];
 
 const partners = [
-  { name: "National Bureau of Statistics", logo: "https://unavatar.io/clearbit/nigerianstat.gov.ng" },
-  { name: "USAID Nigeria", logo: "https://unavatar.io/clearbit/usaid.gov" },
-  { name: "Bill & Melinda Gates Foundation", logo: "https://unavatar.io/clearbit/gatesfoundation.org" },
-  { name: "UN OCHA", logo: "https://unavatar.io/clearbit/unocha.org" },
-  { name: "Save the Children", logo: "https://unavatar.io/clearbit/savethechildren.org" },
-  { name: "Dangote Group", logo: "https://unavatar.io/clearbit/dangote.com" }
+  { name: "Strategic Partner 1", logo: "partner-1" },
+  { name: "Strategic Partner 2", logo: "partner-2" },
+  { name: "Strategic Partner 3", logo: "partner-3" },
+  { name: "Strategic Partner 4", logo: "partner-4" },
+  { name: "Strategic Partner 5", logo: "partner-5" },
+  { name: "Strategic Partner 6", logo: "partner-6" }
 ];
+
+const faqs = [
+  {
+    question: "What is Whitespace?",
+    answer: "Whitespace is Nigeria's central coordination intelligence platform for civil society. We map NGO programmes across all 774 LGAs to identify service gaps, prevent duplication of efforts, and optimize humanitarian resource allocation."
+  },
+  {
+    question: "How do I register my NGO?",
+    answer: "To register, click the 'Register NGO' button on the home page or go to the Auth page. You will need to provide your CAC registration details, institutional information, and a summary of your active programmes."
+  },
+  {
+    question: "Is the data on Whitespace verified?",
+    answer: "Yes. Every organisation on our platform undergoes a verification process that includes CAC documentation checks and institutional vetting. We also use field reports and partner data to validate programme information."
+  },
+  {
+    question: "What is a 'Gap Score'?",
+    answer: "A Gap Score is a metric from 0 to 100 that indicates the level of underserved need in a specific LGA. A score of 100 means there are no recorded interventions relative to the estimated population need in that sector."
+  },
+  {
+    question: "How can donors use this platform?",
+    answer: "Donors can use our Intelligence dashboard to identify high-impact funding opportunities in regions with high Gap Scores. This ensures that funding is directed where it is most needed and avoids over-funding areas that are already saturated."
+  }
+];
+
+function FAQItem({ question, answer, index }: { question: string, answer: string, index: number }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay: index * 0.05 }}
+      className="border-b border-slate-200 last:border-0"
+    >
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full py-6 flex items-center justify-between text-left group"
+      >
+        <span className={`text-lg font-bold transition-colors ${isOpen ? 'text-emerald-600' : 'text-slate-900 group-hover:text-emerald-600'}`}>
+          {question}
+        </span>
+        <div className={`shrink-0 ml-4 w-8 h-8 rounded-full flex items-center justify-center transition-all ${isOpen ? 'bg-emerald-600 text-white rotate-180' : 'bg-slate-100 text-slate-400 group-hover:bg-emerald-50 group-hover:text-emerald-600'}`}>
+          {isOpen ? <Minus size={18} /> : <Plus size={18} />}
+        </div>
+      </button>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            className="overflow-hidden"
+          >
+            <p className="pb-6 text-slate-600 leading-relaxed text-base">
+              {answer}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
 
 export default function AboutPage() {
   return (
@@ -164,6 +229,29 @@ export default function AboutPage() {
                 />
               </motion.div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-24 bg-white border-t border-slate-100" id="faq">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-20">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-full text-xs font-bold uppercase tracking-widest mb-6">
+              <HelpCircle size={14} /> Frequently Asked Questions
+            </div>
+            <h2 className="text-4xl font-bold text-slate-900 mb-6 tracking-tight">Everything you need to know</h2>
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+              Find answers to common questions about the Whitespace platform, NGO registration, and our intelligence methodology.
+            </p>
+          </div>
+
+          <div className="bg-slate-50 rounded-[2.5rem] border border-slate-200 p-8 md:p-12 shadow-sm">
+            <div className="divide-y divide-slate-200">
+              {faqs.map((faq, idx) => (
+                <FAQItem key={idx} question={faq.question} answer={faq.answer} index={idx} />
+              ))}
+            </div>
           </div>
         </div>
       </section>

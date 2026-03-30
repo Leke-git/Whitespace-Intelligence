@@ -10,17 +10,16 @@ export default function Footer() {
   const footerLinks = {
     platform: [
       { name: 'About Us', href: '/about' },
-      { name: 'Coordination Map', href: '/map' },
+      { name: 'Intelligence Hub', href: '/map' },
       { name: 'NGO Registry', href: '/registry' },
-      { name: 'Intelligence', href: '/intelligence' },
       { name: 'Methodology', href: '/methodology' },
     ],
     resources: [
       { name: 'News & Updates', href: '/news' },
       { name: 'Resource Library', href: '/resources' },
       { name: 'Partner With Us', href: '/partner' },
-      { name: 'FAQ', href: '/faq' },
-      { name: 'Donate', href: '/donate' },
+      { name: 'Donate', href: '/partner#donate' },
+      { name: 'FAQ', href: '/about#faq' },
     ],
     legal: [
       { name: 'Privacy Policy', href: '/privacy' },

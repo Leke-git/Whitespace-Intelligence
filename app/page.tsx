@@ -17,14 +17,14 @@ import { useState } from 'react';
 
 export default function Home() {
   const partners = [
-    { name: "National Bureau of Statistics", logo: "https://unavatar.io/clearbit/nigerianstat.gov.ng" },
-    { name: "USAID Nigeria", logo: "https://unavatar.io/clearbit/usaid.gov" },
-    { name: "Bill & Melinda Gates Foundation", logo: "https://unavatar.io/clearbit/gatesfoundation.org" },
-    { name: "UN OCHA", logo: "https://unavatar.io/clearbit/unocha.org" },
-    { name: "Save the Children", logo: "https://unavatar.io/clearbit/savethechildren.org" },
-    { name: "Dangote Group", logo: "https://unavatar.io/clearbit/dangote.com" },
-    { name: "World Bank", logo: "https://unavatar.io/clearbit/worldbank.org" },
-    { name: "European Union", logo: "https://unavatar.io/clearbit/europa.eu" }
+    { name: "Strategic Partner 1", logo: "partner-1" },
+    { name: "Strategic Partner 2", logo: "partner-2" },
+    { name: "Strategic Partner 3", logo: "partner-3" },
+    { name: "Strategic Partner 4", logo: "partner-4" },
+    { name: "Strategic Partner 5", logo: "partner-5" },
+    { name: "Strategic Partner 6", logo: "partner-6" },
+    { name: "Strategic Partner 7", logo: "partner-7" },
+    { name: "Strategic Partner 8", logo: "partner-8" }
   ];
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
@@ -252,7 +252,7 @@ export default function Home() {
             ))}
           </div>
           <div className="mt-12 text-center">
-            <Link href="/faq" className="text-emerald-600 font-bold hover:underline">
+            <Link href="/about#faq" className="text-emerald-600 font-bold hover:underline">
               View all FAQs
             </Link>
           </div>

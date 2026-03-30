@@ -19,8 +19,8 @@ const NEWS_ITEMS = [
   },
   {
     id: 2,
-    title: "New Partnership with National Bureau of Statistics",
-    excerpt: "Whitespace is proud to announce a data-sharing agreement with the NBS to improve the accuracy of our gap score metrics.",
+    title: "New Partnership with Strategic Data Partner",
+    excerpt: "Whitespace is proud to announce a data-sharing agreement with a leading national statistics body to improve the accuracy of our gap score metrics.",
     date: "March 15, 2026",
     category: "Partnership",
     image: "https://picsum.photos/seed/news2/800/400"

@@ -91,7 +91,7 @@ export default function MethodologyPage() {
                   <li>Historical Crisis Data & Security Status</li>
                 </ul>
                 <p className="pt-6 border-t border-slate-800 text-sm italic">
-                  * Methodology updated annually in consultation with the National Bureau of Statistics and international humanitarian partners.
+                  * Methodology updated annually in consultation with strategic data partners and international humanitarian bodies.
                 </p>
               </div>
             </div>
