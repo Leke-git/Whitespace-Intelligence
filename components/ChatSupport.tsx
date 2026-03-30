@@ -63,14 +63,14 @@ export default function ChatSupport() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-[500]">
+    <div className="fixed bottom-28 right-4 md:bottom-8 md:right-8 z-[5000]">
       <AnimatePresence>
         {isOpen && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="mb-4 w-[380px] h-[500px] bg-white rounded-3xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden"
+            className="mb-4 w-[calc(100vw-2rem)] sm:w-[380px] h-[500px] max-h-[70vh] bg-white rounded-3xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden"
           >
             {/* Header */}
             <div className="p-4 bg-emerald-600 text-white flex items-center justify-between">

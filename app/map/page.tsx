@@ -224,7 +224,7 @@ export default function MapPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <main className="h-screen flex flex-col bg-slate-50 overflow-hidden font-sans">
+    <main className="h-screen h-[100dvh] flex flex-col bg-slate-50 overflow-hidden font-sans">
       <Navbar />
 
       <div className="flex-grow relative overflow-hidden">
@@ -287,7 +287,7 @@ export default function MapPage() {
           </div>
 
           {/* ── Lens Switcher (Bottom Center) ─────────────────────────────────── */}
-          <div className={`absolute bottom-10 left-1/2 -translate-x-1/2 z-[1000] flex flex-col items-center gap-4 transition-all duration-500 ${selectedLga ? 'lg:-translate-x-[calc(50%+100px)]' : ''}`}>
+          <div className={`absolute bottom-8 md:bottom-10 left-1/2 -translate-x-1/2 z-[1000] flex flex-col items-center gap-4 transition-all duration-500 ${selectedLga ? 'lg:-translate-x-[calc(50%+100px)]' : ''}`}>
             <div className="flex p-1.5 bg-slate-900/90 backdrop-blur-xl rounded-full shadow-2xl border border-white/10">
               {(Object.keys(MODE_META) as MapMode[]).map(mode => {
                 const { label, Icon } = MODE_META[mode];
@@ -398,19 +398,19 @@ export default function MapPage() {
           </div>
 
           {/* ── Map Legend (Bottom Left) ─────────────────────────────────────── */}
-          <div className={`absolute bottom-10 left-6 z-[1000] hidden md:block transition-all duration-500 ${selectedLga ? 'opacity-0 pointer-events-none translate-x-10' : 'opacity-100'}`}>
-            <div className="bg-white/90 backdrop-blur-xl p-5 rounded-[2rem] shadow-2xl border border-slate-200/60 min-w-[180px]">
-              <div className="flex items-center gap-2 mb-3">
-                <ModeIcon className="w-3.5 h-3.5 text-emerald-500" />
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900">
+          <div className={`absolute bottom-24 md:bottom-10 left-4 md:left-6 z-[1000] transition-all duration-500 ${selectedLga ? 'opacity-0 pointer-events-none translate-x-10' : 'opacity-100'}`}>
+            <div className="bg-white/90 backdrop-blur-xl p-3 md:p-5 rounded-2xl md:rounded-[2rem] shadow-2xl border border-slate-200/60 min-w-[140px] md:min-w-[180px]">
+              <div className="flex items-center gap-2 mb-2 md:mb-3">
+                <ModeIcon className="w-3 h-3 md:w-3.5 md:h-3.5 text-emerald-500" />
+                <h3 className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-900">
                   {legend.title}
                 </h3>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5 md:space-y-2">
                 {legend.items.map(item => (
-                  <div key={item.label} className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full shadow-sm" style={{ background: item.color }} />
-                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">{item.label}</span>
+                  <div key={item.label} className="flex items-center gap-2 md:gap-3">
+                    <div className="w-2 h-2 md:w-3 md:h-3 rounded-full shadow-sm" style={{ background: item.color }} />
+                    <span className="text-[8px] md:text-[10px] font-bold text-slate-600 uppercase tracking-wider">{item.label}</span>
                   </div>
                 ))}
               </div>

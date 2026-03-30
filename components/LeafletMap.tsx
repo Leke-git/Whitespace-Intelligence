@@ -64,14 +64,23 @@ function GeoJsonLayer({
   onHoverLga: (lga: LGA | null) => void;
 }) {
   const map = useMap();
+  const [zoom, setZoom] = useState(map.getZoom());
 
-  const stateOverlayStyle = {
+  useEffect(() => {
+    const onZoom = () => setZoom(map.getZoom());
+    map.on('zoomend', onZoom);
+    return () => {
+      map.off('zoomend', onZoom);
+    };
+  }, [map]);
+
+  const stateOverlayStyle = useMemo(() => ({
     color: '#475569',
-    weight: 1.5,
-    opacity: 0.4,
+    weight: zoom > 8 ? 1.5 : 0.8,
+    opacity: zoom > 8 ? 0.4 : 0.2,
     fillOpacity: 0,
     interactive: false
-  };
+  }), [zoom]);
 
   const hoveredRef = useRef<string | null>(null);
 
@@ -101,11 +110,11 @@ function GeoJsonLayer({
       fillColor, 
       fillOpacity, 
       color: '#475569', 
-      weight: 1.2, 
-      opacity: 0.8,
+      weight: zoom > 8 ? 1.2 : 0.4, 
+      opacity: zoom > 8 ? 0.8 : 0.3,
       pane: 'overlayPane'
     } as L.PathOptions;
-  }, [lgaMap, filteredIds, mapMode, capacityType, verifiedOnly, programmes]);
+  }, [lgaMap, filteredIds, mapMode, capacityType, verifiedOnly, programmes, zoom]);
 
   const onEachFeature = useCallback((feature: Feature, layer: L.Layer) => {
     layer.on({
@@ -241,7 +250,7 @@ export default function LeafletMap({
         zoomControl={false}
         attributionControl={false}
       >
-        <ZoomControl position="topright" />
+        {!isMobile && <ZoomControl position="topright" />}
         <MapController selectedState={selectedState} stateGeoJson={stateGeoJson} drawerOpen={drawerOpen} isMobile={isMobile} />
         <GeoJsonLayer
           geoJson={geoJson as any}

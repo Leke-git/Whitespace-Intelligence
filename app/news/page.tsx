@@ -41,23 +41,38 @@ export default function NewsPage() {
   const [search, setSearch] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [sortBy, setSortBy] = useState<'latest' | 'relevance'>('latest');
 
   const filteredNews = useMemo(() => {
-    return NEWS_ITEMS.filter(item => {
+    let result = NEWS_ITEMS.filter(item => {
       const matchesSearch = item.title.toLowerCase().includes(search.toLowerCase()) || 
                            item.excerpt.toLowerCase().includes(search.toLowerCase());
       const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(item.category);
       return matchesSearch && matchesCategory;
     });
-  }, [search, selectedCategories]);
+
+    if (sortBy === 'latest') {
+      result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    } else if (sortBy === 'relevance' && search) {
+      result.sort((a, b) => {
+        const aTitleMatch = a.title.toLowerCase().includes(search.toLowerCase()) ? 2 : 0;
+        const aExcerptMatch = a.excerpt.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
+        const bTitleMatch = b.title.toLowerCase().includes(search.toLowerCase()) ? 2 : 0;
+        const bExcerptMatch = b.excerpt.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
+        return (bTitleMatch + bExcerptMatch) - (aTitleMatch + aExcerptMatch);
+      });
+    }
+
+    return result;
+  }, [search, selectedCategories, sortBy]);
 
   return (
-    <main className="h-screen bg-slate-50 flex flex-col overflow-hidden">
+    <main className="h-screen h-[100dvh] bg-slate-50 flex flex-col overflow-hidden">
       <Navbar />
       
       <div className="flex-grow relative min-h-0 overflow-hidden">
         {/* ── Floating Command Bar (Top) ────────────────────────────────────── */}
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 w-full max-w-2xl px-4 z-[1000] flex gap-2">
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 w-full max-w-3xl px-4 z-[1000] flex gap-2">
           <div className="flex-grow relative group">
             <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
               <Search className="w-4 h-4 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
@@ -69,6 +84,25 @@ export default function NewsPage() {
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-11 pr-4 py-3.5 bg-white/90 backdrop-blur-xl border border-slate-200/60 rounded-2xl shadow-2xl shadow-slate-200/50 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500/50 transition-all text-sm font-medium"
             />
+          </div>
+
+          <div className="flex p-1 bg-white/90 backdrop-blur-xl border border-slate-200/60 rounded-2xl shadow-2xl shadow-slate-200/50">
+            <button
+              onClick={() => setSortBy('latest')}
+              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                sortBy === 'latest' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              Latest
+            </button>
+            <button
+              onClick={() => setSortBy('relevance')}
+              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                sortBy === 'relevance' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              Relevance
+            </button>
           </div>
           
           <button 
